@@ -37,6 +37,9 @@ object SampleRecords {
             rating = Rating(10 - i % 10),
             watchedAt = now.minus(i * 4L, ChronoUnit.DAYS),
             tier = tiers[i % tiers.size],
+            // Every 3rd record is in a top list, to show the thumbs-up sticker.
+            highlyRecommended = i % 3 == 0,
+            hasReview = i % 2 == 0,
         )
     }
 
@@ -57,6 +60,7 @@ object SampleRecords {
                 "the desert has never looked this alien."
         }.joinToString("\n\n"),
         tier = "S",
+        highlyRecommended = true,
     )
 
     /** Anime series with no poster, no tier, no recommendation and a short review. */

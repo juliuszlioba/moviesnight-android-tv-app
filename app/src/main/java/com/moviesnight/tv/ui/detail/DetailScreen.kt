@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,9 +50,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.material3.Button
+import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
@@ -60,9 +63,12 @@ import com.moviesnight.tv.data.model.RecordDetail
 import com.moviesnight.tv.data.remote.TmdbImage
 import com.moviesnight.tv.ui.components.POSTER_ASPECT
 import com.moviesnight.tv.ui.components.Quote
+import com.moviesnight.tv.ui.components.RecommendedBadge
+import com.moviesnight.tv.ui.components.RecommendedBadgeSize
 import com.moviesnight.tv.ui.components.StarRating
 import com.moviesnight.tv.ui.components.TierBadge
 import com.moviesnight.tv.ui.components.TierBadgeSize
+import com.moviesnight.tv.ui.components.ThumbsUpIcon
 import com.moviesnight.tv.ui.components.requestFocusWhenReady
 import com.moviesnight.tv.ui.theme.Background
 import com.moviesnight.tv.ui.theme.Star
@@ -143,6 +149,14 @@ private fun Poster(record: RecordDetail) {
                 .align(Alignment.TopStart)
                 .offset(TierBadgeSize.Large.offsetX, TierBadgeSize.Large.offsetY),
         )
+        if (record.highlyRecommended) {
+            RecommendedBadge(
+                size = RecommendedBadgeSize.Large,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .offset(RecommendedBadgeSize.Large.offsetX, RecommendedBadgeSize.Large.offsetY),
+            )
+        }
     }
 }
 
@@ -196,12 +210,22 @@ private fun ScrollableInfo(record: RecordDetail, modifier: Modifier) {
                 Text("Watched ${formatDate(it)}", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
             }
             if (record.genres.isNotEmpty()) {
-                Spacer(Modifier.height(4.dp))
-                Text(record.genres.joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                Spacer(Modifier.height(6.dp))
+                // Quieter than the watched date: smaller and dimmer.
+                Text(
+                    record.genres.joinToString(" · "),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    color = TextSecondary.copy(alpha = 0.6f),
+                )
+            }
+
+            if (record.highlyRecommended) {
+                Spacer(Modifier.height(24.dp))
+                HighlyRecommended()
             }
 
             record.recommendation?.let {
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(if (record.highlyRecommended) 16.dp else 32.dp))
                 // Same look as the website: yellow text with a hanging yellow quote mark.
                 Quote(
                     text = it,
@@ -218,6 +242,15 @@ private fun ScrollableInfo(record: RecordDetail, modifier: Modifier) {
         // Soft fades hint that the text continues.
         EdgeFade(Modifier.align(Alignment.TopCenter).alpha(moreAbove), fromTop = true)
         EdgeFade(Modifier.align(Alignment.BottomCenter).alpha(moreBelow), fromTop = false)
+    }
+}
+
+/** The website's line under the review: yellow thumbs-up + "Highly recommended to see!". */
+@Composable
+private fun HighlyRecommended() {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Icon(ThumbsUpIcon, contentDescription = null, tint = Star, modifier = Modifier.size(26.dp))
+        Text("Highly recommended to see!", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
     }
 }
 
@@ -280,7 +313,7 @@ private fun DetailPreview() {
     PreviewSurface { DetailContent(DetailUiState.Loaded(SampleRecords.detail), onRetry = {}) }
 }
 
-/** No poster, tier, rating, date, genres or recommendation. */
+/** No poster, tier, rating, date, genres, recommendation or top-list place. */
 @TvScreenPreview
 @Composable
 private fun DetailSparsePreview() {

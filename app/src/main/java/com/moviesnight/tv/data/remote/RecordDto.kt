@@ -10,12 +10,13 @@ import java.time.Instant
 import java.time.OffsetDateTime
 
 /** Columns requested for grid cards; keep in sync with [RecordSummaryDto]. */
-internal const val SUMMARY_COLUMNS = "id,title,year,poster,rating,watchedat,tier"
+internal const val SUMMARY_COLUMNS =
+    "id,title,year,poster,rating,watchedat,tier,sort_order_movie,sort_order_series,review"
 
 /** All record columns plus genres through the records_ganres join table. */
 internal const val DETAIL_COLUMNS =
     "id,mediatype,title,year,poster,rating,watchedat,recommendation,review,tier," +
-        "sort_order_anime,records_ganres(ganres(title))"
+        "sort_order_anime,sort_order_movie,sort_order_series,records_ganres(ganres(title))"
 
 @Serializable
 internal data class RecordSummaryDto(
@@ -26,6 +27,10 @@ internal data class RecordSummaryDto(
     val rating: Int? = null,
     val watchedat: String? = null,
     val tier: String? = null,
+    @SerialName("sort_order_movie") val sortOrderMovie: Int? = null,
+    @SerialName("sort_order_series") val sortOrderSeries: Int? = null,
+    /** Fetched only to know whether one exists; reviews are short, so this costs little. */
+    val review: String? = null,
 ) {
     fun toModel() = RecordSummary(
         id = id,
@@ -35,6 +40,8 @@ internal data class RecordSummaryDto(
         rating = Rating.of(rating),
         watchedAt = parseTimestamp(watchedat),
         tier = tier,
+        highlyRecommended = isHighlyRecommended(sortOrderMovie, sortOrderSeries),
+        hasReview = !review.isNullOrBlank(),
     )
 }
 
@@ -51,6 +58,8 @@ internal data class RecordDetailDto(
     val review: String? = null,
     val tier: String? = null,
     @SerialName("sort_order_anime") val sortOrderAnime: Int? = null,
+    @SerialName("sort_order_movie") val sortOrderMovie: Int? = null,
+    @SerialName("sort_order_series") val sortOrderSeries: Int? = null,
     @SerialName("records_ganres") val genreLinks: List<GenreLinkDto> = emptyList(),
 ) {
     fun toModel() = RecordDetail(
@@ -66,8 +75,16 @@ internal data class RecordDetailDto(
         recommendation = recommendation?.trim()?.takeIf { it.isNotEmpty() },
         review = review?.trim()?.takeIf { it.isNotEmpty() },
         tier = tier,
+        highlyRecommended = isHighlyRecommended(sortOrderMovie, sortOrderSeries),
     )
 }
+
+/**
+ * Same rule as the website: a place in the movie or series top list makes a record
+ * "highly recommended". The anime list (`sort_order_anime`) doesn't count.
+ */
+private fun isHighlyRecommended(sortOrderMovie: Int?, sortOrderSeries: Int?) =
+    sortOrderMovie != null || sortOrderSeries != null
 
 @Serializable
 internal data class GenreLinkDto(@SerialName("ganres") val genre: GenreDto? = null)

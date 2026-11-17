@@ -73,7 +73,7 @@ fun PosterCard(
 
     // Focused card draws above its neighbours, so the scaled poster and glow aren't covered.
     Column(modifier.zIndex(if (focused) 1f else 0f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // The poster scales here rather than inside Card, so the tier sticker scales with it.
+        // The poster scales here rather than inside Card, so the stickers scale with it.
         // Scaling at draw time (not with graphicsLayer) keeps layout bounds unchanged; otherwise
         // the grid's bring-into-view sees the growing poster and the page wobbles on focus moves.
         Box(Modifier.drawWithContent { scale(scale) { this@drawWithContent.drawContent() } }) {
@@ -119,8 +119,25 @@ fun PosterCard(
                     .zIndex(2f)
                     .offset(TierBadgeSize.Small.offsetX, TierBadgeSize.Small.offsetY),
             )
+            if (record.highlyRecommended) {
+                RecommendedBadge(
+                    size = RecommendedBadgeSize.Small,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .zIndex(2f)
+                        .offset(RecommendedBadgeSize.Small.offsetX, RecommendedBadgeSize.Small.offsetY),
+                )
+            }
         }
-        StarRating(record.rating, Modifier.padding(start = 2.dp))
+        // Stars on the left, review icon pinned to the card's right edge.
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            StarRating(record.rating)
+            if (record.hasReview) ReviewIndicator()
+        }
     }
 }
 
