@@ -122,12 +122,13 @@ fun PosterCard(
                     .offset(TierBadgeSize.Small.offsetX, TierBadgeSize.Small.offsetY),
             )
             if (record.highlyRecommended) {
+                val hasTier = showTier && tierColor(record.tier) != null
                 RecommendedBadge(
                     size = RecommendedBadgeSize.Small,
                     modifier = Modifier
-                        .align(Alignment.BottomStart)
+                        .align(Alignment.TopStart)
                         .zIndex(2f)
-                        .offset(RecommendedBadgeSize.Small.offsetX, RecommendedBadgeSize.Small.offsetY),
+                        .offset(RecommendedBadgeSize.Small.offsetX, RecommendedBadgeSize.Small.offsetY(hasTier)),
                 )
             }
         }

@@ -68,6 +68,7 @@ import com.moviesnight.tv.ui.components.RecommendedBadgeSize
 import com.moviesnight.tv.ui.components.StarRating
 import com.moviesnight.tv.ui.components.TierBadge
 import com.moviesnight.tv.ui.components.TierBadgeSize
+import com.moviesnight.tv.ui.components.tierColor
 import com.moviesnight.tv.ui.components.ThumbsUpIcon
 import com.moviesnight.tv.ui.components.requestFocusWhenReady
 import com.moviesnight.tv.ui.theme.Background
@@ -153,8 +154,11 @@ private fun Poster(record: RecordDetail) {
             RecommendedBadge(
                 size = RecommendedBadgeSize.Large,
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .offset(RecommendedBadgeSize.Large.offsetX, RecommendedBadgeSize.Large.offsetY),
+                    .align(Alignment.TopStart)
+                    .offset(
+                        RecommendedBadgeSize.Large.offsetX,
+                        RecommendedBadgeSize.Large.offsetY(hasTier = tierColor(record.tier) != null),
+                    ),
             )
         }
     }

@@ -52,12 +52,21 @@ enum class RecommendedBadgeSize(
     val pad: Dp,
     val corner: Dp,
     val shadow: Dp,
-    /** Where the sticker sits relative to the poster's bottom-left corner (website: -left-2 bottom-3). */
+    /**
+     * Where the sticker sits relative to the poster's top-left corner. It hangs over the
+     * left edge in the tier sticker's spot, or just below it when there is one, so it never
+     * covers the title shown at the bottom of a focused card.
+     */
     val offsetX: Dp,
     val offsetY: Dp,
+    val belowTierOffsetY: Dp,
 ) {
-    Small(icon = 20.dp, pad = 5.dp, corner = 5.dp, shadow = 8.dp, offsetX = (-7).dp, offsetY = (-10).dp),
-    Large(icon = 32.dp, pad = 8.dp, corner = 8.dp, shadow = 14.dp, offsetX = (-12).dp, offsetY = (-20).dp),
+    // offsetY matches TierBadgeSize; belowTierOffsetY = that + tier sticker side + a small gap.
+    Small(icon = 20.dp, pad = 5.dp, corner = 5.dp, shadow = 8.dp, offsetX = (-7).dp, offsetY = 10.dp, belowTierOffsetY = 48.dp),
+    Large(icon = 32.dp, pad = 8.dp, corner = 8.dp, shadow = 14.dp, offsetX = (-12).dp, offsetY = 20.dp, belowTierOffsetY = 80.dp),
+    ;
+
+    fun offsetY(hasTier: Boolean): Dp = if (hasTier) belowTierOffsetY else offsetY
 }
 
 /**
