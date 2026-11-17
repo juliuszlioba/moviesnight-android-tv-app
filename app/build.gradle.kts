@@ -28,8 +28,8 @@ android {
         applicationId = "com.moviesnight.tv"
         minSdk = 28
         targetSdk = 37
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
     }
 
     // release → production Supabase (HTTPS). debug/profile → local Docker over the LAN.

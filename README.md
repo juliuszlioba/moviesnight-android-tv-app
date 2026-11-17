@@ -7,10 +7,11 @@ anime I've watched and how I rated them, read directly from the Supabase databas
 It's for personal use only. It's sideloaded with adb and will never go to a store. It needs no login,
 because it only reads what the database already exposes publicly through RLS.
 
-**What it does (v0.3.0)**
+**What it does (v0.4.0)**
 
 - Home: logo on the left, tabs on the right (**All · Movies · Series · Anime · Anime Tier List**), and a
-  6-column poster grid sorted by watched date, newest first. Pages load as you scroll.
+  6-column poster grid sorted by watched date, newest first. Pages load as you scroll. Anime appear
+  only under All and the two anime tabs, not under Movies or Series.
 - Anime Tier List: every anime grouped by tier (S → F, then ungraded "?"), each tier in anime-list
   order, as on the website's `/anime/tier`. Each tier's posters wrap to the right of a tile in the
   tier's colour showing the letter and count. The tile sticks to the top while you scroll through a
@@ -144,7 +145,9 @@ The app only reads. Everything goes through `data/RecordsRepository.kt`.
 
 - **Table `records`**: `mediatype` is only ever `movie` or `series`.
 - **Anime has no media type.** Like the website, a record is anime when `sort_order_anime IS NOT NULL`.
-  So anime also appear under Movies/Series.
+  The Movies and Series tabs filter on `mediatype` **and** `sort_order_anime IS NULL`, so anime show up
+  only under All, Anime and Anime Tier List. An anime missing `sort_order_anime` still lands in
+  Movies/Series.
 - **Rating** is an integer 1–10 (0/null = unrated), shown as 5 stars with halves (9 → ★★★★½). The
   mapping is in `data/model/Rating.kt` and matches the website's `StarRating`.
 - **Tier** (`S/A/B/C/D/F` or null) uses the same Tailwind colours as the website's `lib/tiers.ts`:
