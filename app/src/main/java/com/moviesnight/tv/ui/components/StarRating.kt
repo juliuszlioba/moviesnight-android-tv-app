@@ -19,6 +19,14 @@ import androidx.compose.ui.unit.dp
 import com.moviesnight.tv.data.model.Rating
 import com.moviesnight.tv.ui.theme.Star
 import com.moviesnight.tv.ui.theme.StarEmpty
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Text
+import com.moviesnight.tv.ui.preview.PreviewSurface
+import com.moviesnight.tv.ui.preview.TvComponentPreview
+import com.moviesnight.tv.ui.theme.TextSecondary
 
 /** Same star shape as the website (Bootstrap Icons "star-fill", 16×16 viewport). */
 private val StarPath = PathParser().parsePathString(
@@ -61,5 +69,22 @@ fun StarRating(
 private fun DrawScope.drawStar(color: Color) {
     scale(size.width / VIEWPORT, size.height / VIEWPORT, pivot = Offset.Zero) {
         drawPath(StarPath, color)
+    }
+}
+
+/** Every rating from 10 down to 0 (unrated), at grid size. */
+@TvComponentPreview
+@Composable
+private fun StarRatingPreview() {
+    PreviewSurface {
+        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            (10 downTo 0).forEach { value ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("$value".padStart(2), style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                    StarRating(Rating(value))
+                }
+            }
+            StarRating(Rating(7), starSize = 26.dp, spacing = 6.dp) // detail-screen size
+        }
     }
 }

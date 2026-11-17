@@ -74,6 +74,19 @@ There's no DI framework: `MoviesNightApp` holds the repository and the Coil imag
 
 ---
 
+## Developing without the Shield
+
+- **Compose previews**: open a screen or component file in Android Studio and switch to *Split* or
+  *Design*. Previews use made-up records from `ui/preview/SampleRecords.kt`, and posters are drawn
+  as color gradients because previews can't download images. Screens render at the Shield's size
+  (960×540 dp). Use *Interactive mode* to move focus with the arrow keys.
+- **TV emulator**: the `NVIDIA_Shield_Androit_TV_-_Virtual` AVD (Android 11 / API 30, 1080p) behaves
+  like the Shield. Run the debug build on it with Docker Supabase running. Arrow keys and Enter work
+  as the D-pad and OK, and Esc works as Back.
+- Judge smoothness on the real Shield with the profile build, not in previews or the emulator.
+
+---
+
 ## Deploying to the Shield
 
 One-time setup on the Shield: Settings → Device Preferences → About → click **Build** 7×, then

@@ -19,6 +19,9 @@ import androidx.tv.material3.Text
 import com.moviesnight.tv.R
 import com.moviesnight.tv.ui.theme.Geist
 import com.moviesnight.tv.ui.theme.TextPrimary
+import androidx.compose.foundation.layout.padding
+import com.moviesnight.tv.ui.preview.PreviewSurface
+import com.moviesnight.tv.ui.preview.TvComponentPreview
 
 /**
  * The website's header logo: popcorn icon + "movies" (Geist extra-light) "Night" (regular).
@@ -44,4 +47,10 @@ fun Logo(modifier: Modifier = Modifier) {
             color = TextPrimary,
         )
     }
+}
+
+@TvComponentPreview
+@Composable
+private fun LogoPreview() {
+    PreviewSurface { Logo(Modifier.padding(24.dp)) }
 }

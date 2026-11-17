@@ -15,6 +15,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import com.moviesnight.tv.ui.preview.PreviewSurface
+import com.moviesnight.tv.ui.preview.TvComponentPreview
 
 /** Tailwind colors used by the website's TIER_STYLES (lib/tiers.ts). */
 private data class TierStyle(val background: Color, val text: Color)
@@ -67,4 +72,18 @@ fun TierBadge(tier: String?, size: TierBadgeSize, modifier: Modifier = Modifier)
             .background(style.background, shape)
             .padding(horizontal = size.padH, vertical = size.padV),
     )
+}
+
+@TvComponentPreview
+@Composable
+private fun TierBadgePreview() {
+    PreviewSurface {
+        Column(Modifier.padding(32.dp), verticalArrangement = Arrangement.spacedBy(32.dp)) {
+            TierBadgeSize.entries.forEach { size ->
+                Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+                    TierStyles.keys.forEach { TierBadge(it, size) }
+                }
+            }
+        }
+    }
 }

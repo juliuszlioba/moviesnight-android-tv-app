@@ -74,6 +74,9 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.moviesnight.tv.ui.preview.PreviewSurface
+import com.moviesnight.tv.ui.preview.SampleRecords
+import com.moviesnight.tv.ui.preview.TvScreenPreview
 
 private val PosterShape = RoundedCornerShape(8.dp)
 /** Poster fills the screen height, so its top, left and bottom margins are all [Margin]. */
@@ -84,10 +87,16 @@ private val ScreenPadding = Modifier.padding(Margin)
 @Composable
 fun DetailScreen(viewModel: DetailViewModel = viewModel(factory = DetailViewModel.Factory)) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    when (val s = state) {
+    DetailContent(state, onRetry = viewModel::load)
+}
+
+/** The detail screen without its ViewModel, so previews can feed it sample data. */
+@Composable
+fun DetailContent(state: DetailUiState, onRetry: () -> Unit) {
+    when (state) {
         DetailUiState.Loading -> LoadingDetail()
-        DetailUiState.Error -> ErrorDetail(onRetry = viewModel::load)
-        is DetailUiState.Loaded -> LoadedDetail(s.record)
+        DetailUiState.Error -> ErrorDetail(onRetry = onRetry)
+        is DetailUiState.Loaded -> LoadedDetail(state.record)
     }
 }
 
@@ -262,4 +271,30 @@ private fun ErrorDetail(onRetry: () -> Unit) {
         Spacer(Modifier.height(24.dp))
         Button(onClick = onRetry, modifier = Modifier.focusRequester(focus)) { Text("Retry") }
     }
+}
+
+/** Long review: Up/Down scroll it in Interactive mode. */
+@TvScreenPreview
+@Composable
+private fun DetailPreview() {
+    PreviewSurface { DetailContent(DetailUiState.Loaded(SampleRecords.detail), onRetry = {}) }
+}
+
+/** No poster, tier, rating, date, genres or recommendation. */
+@TvScreenPreview
+@Composable
+private fun DetailSparsePreview() {
+    PreviewSurface { DetailContent(DetailUiState.Loaded(SampleRecords.sparseDetail), onRetry = {}) }
+}
+
+@TvScreenPreview
+@Composable
+private fun DetailLoadingPreview() {
+    PreviewSurface { DetailContent(DetailUiState.Loading, onRetry = {}) }
+}
+
+@TvScreenPreview
+@Composable
+private fun DetailErrorPreview() {
+    PreviewSurface { DetailContent(DetailUiState.Error, onRetry = {}) }
 }

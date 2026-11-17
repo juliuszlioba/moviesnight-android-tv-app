@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
+import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
@@ -70,7 +71,11 @@ import com.moviesnight.tv.ui.components.requestFocusWhenReady
 import com.moviesnight.tv.ui.theme.Surface
 import com.moviesnight.tv.ui.theme.TextPrimary
 import com.moviesnight.tv.ui.theme.TextSecondary
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import com.moviesnight.tv.ui.preview.PreviewSurface
+import com.moviesnight.tv.ui.preview.SampleRecords
+import com.moviesnight.tv.ui.preview.TvScreenPreview
 
 private const val COLUMNS = 6
 private val EdgePadding = 48.dp // TV overscan-safe side margin
@@ -84,6 +89,22 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
     val selected by viewModel.selected.collectAsStateWithLifecycle()
+    HomeContent(
+        selected = selected,
+        onSelect = viewModel::select,
+        records = viewModel.records::getValue,
+        onOpenRecord = onOpenRecord,
+    )
+}
+
+/** The home screen without its ViewModel, so previews can feed it sample data. */
+@Composable
+fun HomeContent(
+    selected: MediaFilter,
+    onSelect: (MediaFilter) -> Unit,
+    records: (MediaFilter) -> Flow<PagingData<RecordSummary>>,
+    onOpenRecord: (Long) -> Unit,
+) {
     // Saveable, so scroll positions survive a trip to the detail screen and back.
     val gridStates = MediaFilter.entries.associateWith {
         rememberSaveable(it.name, saver = LazyGridState.Saver) { LazyGridState() }
@@ -115,14 +136,14 @@ fun HomeScreen(
             Logo()
             FilterTabs(
                 selected = selected,
-                onSelect = viewModel::select,
+                onSelect = onSelect,
                 focusRequesters = tabFocus,
                 modifier = Modifier.onFocusChanged { tabsFocused = it.hasFocus },
             )
         }
 
         key(selected) {
-            val items = viewModel.records.getValue(selected).collectAsLazyPagingItems()
+            val items = remember(selected) { records(selected) }.collectAsLazyPagingItems()
             RecordsGrid(
                 items = items,
                 state = gridStates.getValue(selected),
@@ -305,5 +326,47 @@ private fun ErrorState(message: String, onRetry: () -> Unit, takeFocus: Boolean)
 private fun CenteredMessage(text: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text, style = MaterialTheme.typography.titleMedium, color = TextSecondary)
+    }
+}
+
+/** Tabs switch in Interactive mode; Movies/Series/Anime show a smaller sample list. */
+@TvScreenPreview
+@Composable
+private fun HomePreview() {
+    var selected by remember { mutableStateOf(MediaFilter.All) }
+    PreviewSurface {
+        HomeContent(
+            selected = selected,
+            onSelect = { selected = it },
+            records = { filter ->
+                if (filter == MediaFilter.All) SampleRecords.paged()
+                else SampleRecords.paged(SampleRecords.summaries.filterIndexed { i, _ -> i % 3 == filter.ordinal - 1 })
+            },
+            onOpenRecord = {},
+        )
+    }
+}
+
+@TvScreenPreview
+@Composable
+private fun HomeLoadingPreview() = HomeStatePreview(LoadState.Loading)
+
+@TvScreenPreview
+@Composable
+private fun HomeErrorPreview() = HomeStatePreview(LoadState.Error(Exception("offline")))
+
+@TvScreenPreview
+@Composable
+private fun HomeEmptyPreview() = HomeStatePreview(LoadState.NotLoading(endOfPaginationReached = true))
+
+@Composable
+private fun HomeStatePreview(refresh: LoadState) {
+    PreviewSurface {
+        HomeContent(
+            selected = MediaFilter.All,
+            onSelect = {},
+            records = { SampleRecords.pagedState(refresh) },
+            onOpenRecord = {},
+        )
     }
 }

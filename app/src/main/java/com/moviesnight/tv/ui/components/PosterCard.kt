@@ -43,6 +43,14 @@ import com.moviesnight.tv.ui.theme.FocusGlow
 import com.moviesnight.tv.ui.theme.Surface
 import com.moviesnight.tv.ui.theme.TextPrimary
 import com.moviesnight.tv.ui.theme.TextSecondary
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import com.moviesnight.tv.ui.preview.PreviewSurface
+import com.moviesnight.tv.ui.preview.SampleRecords
+import com.moviesnight.tv.ui.preview.TvComponentPreview
 
 private val PosterShape = RoundedCornerShape(6.dp)
 const val POSTER_ASPECT = 2f / 3f
@@ -147,5 +155,30 @@ private fun TitleTile(title: String) {
             maxLines = 4,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/**
+ * First card focused (with tier), then unfocused cards: with poster, no tier, and no poster.
+ * Static previews may not finish the focus animation; use Interactive mode to move focus around.
+ */
+@TvComponentPreview
+@Composable
+private fun PosterCardPreview() {
+    val samples = SampleRecords.summaries
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocusWhenReady() }
+    PreviewSurface {
+        Row(Modifier.padding(32.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            listOf(samples[0], samples[2], samples[1], samples[6]).forEachIndexed { i, record ->
+                PosterCard(
+                    record = record,
+                    onClick = {},
+                    modifier = Modifier
+                        .width(140.dp)
+                        .then(if (i == 0) Modifier.focusRequester(focus) else Modifier),
+                )
+            }
+        }
     }
 }
