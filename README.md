@@ -7,13 +7,17 @@ anime I've watched and how I rated them, read directly from the Supabase databas
 It's for personal use only. It's sideloaded with adb and will never go to a store. It needs no login,
 because it only reads what the database already exposes publicly through RLS.
 
-**What it does (v0.2.0)**
+**What it does (v0.3.0)**
 
-- Home: logo on the left, tabs on the right (**All · Movies · Series · Anime**), and a 6-column poster
-  grid sorted by watched date, newest first. Pages load as you scroll.
+- Home: logo on the left, tabs on the right (**All · Movies · Series · Anime · Anime Tier List**), and a
+  6-column poster grid sorted by watched date, newest first. Pages load as you scroll.
+- Anime Tier List: every anime grouped by tier (S → F, then ungraded "?"), each tier in anime-list
+  order, as on the website's `/anime/tier`. Each tier's posters wrap to the right of a tile in the
+  tier's colour showing the letter and count. The tile sticks to the top while you scroll through a
+  long tier.
 - Each card shows the poster, the stars (rating 1–10 shown as 5 stars with halves) and the S–F tier
-  sticker, if set. A yellow thumbs-up sticker marks records in the movie or series top list
-  ("Highly recommended", as on the website), and a small speech bubble after the stars marks records
+  sticker, if set. A yellow thumbs-up sticker below the tier sticker marks records in the movie or
+  series top list ("Highly recommended", as on the website), and a small speech bubble after the stars marks records
   with a review. The focused card scales up and shows its title and year.
 - OK opens the detail screen: a large poster, title, year/type, stars, watched date, genres, the
   "Highly recommended to see!" line, the recommendation (yellow quote, as on the website) and the
@@ -151,6 +155,9 @@ The app only reads. Everything goes through `data/RecordsRepository.kt`.
   "Series" entry (id 1).
 - **Posters** are TMDB paths (`/abc.jpg`), loaded from `image.tmdb.org/t/p/w342` (grid) and `w780`
   (detail). `data/remote/Tmdb.kt`.
+- **Tier list** (`animeTierList()`): all anime ordered by `sort_order_anime`, fetched in chunks of
+  1000 (PostgREST `max_rows`), then grouped by tier in `data/model/TierList.kt`. Same query as the
+  website's `fetchAllAnimeTierRecords`.
 - **Sorting** is by `watchedat desc, id desc`. The `id` tiebreaker keeps page boundaries stable.
   Paging is offset-based, 42 rows per page (7 full grid rows).
 - **Columns** are listed in `data/remote/RecordDto.kt` (`SUMMARY_COLUMNS` for the grid,
@@ -167,11 +174,13 @@ app/src/main/java/com/moviesnight/tv/
 │  ├─ RecordsRepository.kt              Supabase queries + Pager
 │  ├─ RecordsPagingSource.kt            offset paging
 │  ├─ Supabase.kt                       anonymous client from BuildConfig
-│  ├─ model/                            MediaFilter (tabs), Rating, RecordSummary/RecordDetail
+│  ├─ model/                            MediaFilter (tabs), Rating, RecordSummary/RecordDetail,
+│  │                                    TierList (grouping by tier)
 │  └─ remote/                           DTOs + column lists, TMDB image URLs
 └─ ui/
    ├─ AppNavigation.kt                  Home → Detail(id)
-   ├─ home/                             HomeScreen (header, tabs, grid, focus), HomeViewModel
+   ├─ home/                             HomeScreen (header, tabs, grid, focus), HomeViewModel,
+   │                                    AnimeTierList (tier tab)
    ├─ detail/                           DetailScreen (poster, info, scrolling), DetailViewModel
    ├─ components/                       PosterCard, StarRating, TierBadge, Quote, Logo,
    │                                    GridScroll (custom row scrolling), Focus helpers
@@ -190,7 +199,11 @@ app/src/main/java/com/moviesnight/tv/
   view" animation jumps hard at the start and creeps at the end, and since Compose 1.8 its animation
   can't be customised. So it's disabled (`NoAutoScroll`), and each focus change calls
   `scrollRowToPivot()`: one 300 ms ease-in-out glide that rests the focused row 140dp below the grid
-  top. Don't remove one half without the other.
+  top. Don't remove one half without the other. The tier list is a `LazyColumn` of poster rows and
+  uses the same approach (`scrollItemToPivot()`).
+- **Tier list labels** are an overlay beside the list, not list items. Their position and the colour
+  bands are computed from `LazyListState.layoutInfo` in the layout/draw phase, so scrolling doesn't
+  recompose them.
 - **Focus zoom is draw-only.** `PosterCard` scales in `drawWithContent`, not `graphicsLayer`/Card's own
   scale. Scaling the layer changes the bounds that scrolling measures and made the page wobble
   on every Left/Right. The tier sticker has `zIndex(2f)` because the TV Card raises itself when focused.
@@ -202,7 +215,7 @@ app/src/main/java/com/moviesnight/tv/
 ## Tests
 
 ```powershell
-.\gradlew testDebugUnitTest          # unit tests (rating mapping, JSON decoding, paging)
+.\gradlew testDebugUnitTest          # unit tests (rating mapping, JSON decoding, paging, tier grouping)
 .\gradlew testDebugUnitTest -Plive   # + smoke tests against the local Docker DB (read-only)
 ```
 
@@ -247,5 +260,5 @@ Fonts: `res/font/inter.ttf` (UI) and `res/font/geist.ttf` (wordmark). Both are v
 
 - Hide the "Series" pseudo-genre on the detail screen.
 - Yellow quote mark on reviews too (the website uses it for both).
-- Sort by rating, or a filter by tier.
+- Sort by rating.
 - Refresh when returning to the app, so new records from the website appear without restarting.
