@@ -52,8 +52,15 @@ class RecordsRepository(private val supabase: SupabaseClient) {
                 filter {
                     when (filter) {
                         MediaFilter.All -> Unit
-                        MediaFilter.Movies -> eq("mediatype", "movie")
-                        MediaFilter.Series -> eq("mediatype", "series")
+                        // anime live in the Anime tab only
+                        MediaFilter.Movies -> {
+                            eq("mediatype", "movie")
+                            filter("sort_order_anime", FilterOperator.IS, "null")
+                        }
+                        MediaFilter.Series -> {
+                            eq("mediatype", "series")
+                            filter("sort_order_anime", FilterOperator.IS, "null")
+                        }
                         MediaFilter.Anime, MediaFilter.AnimeTiers ->
                             filterNot("sort_order_anime", FilterOperator.IS, "null")
                     }
