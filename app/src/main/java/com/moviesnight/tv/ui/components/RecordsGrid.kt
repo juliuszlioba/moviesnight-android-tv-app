@@ -145,7 +145,7 @@ fun RecordsGrid(
 
 /** Quiet pulsing poster placeholders while the first page loads. */
 @Composable
-private fun LoadingGrid() {
+fun LoadingGrid() {
     val pulse by rememberInfiniteTransition(label = "pulse").animateFloat(
         initialValue = 0.35f,
         targetValue = 0.7f,
@@ -172,8 +172,9 @@ private fun LoadingGrid() {
     }
 }
 
+/** Message plus a Retry button, which takes focus when [takeFocus] is set. */
 @Composable
-private fun ErrorState(message: String, onRetry: () -> Unit, takeFocus: Boolean) {
+fun ErrorState(message: String, onRetry: () -> Unit, takeFocus: Boolean) {
     val retryFocus = remember { FocusRequester() }
     if (takeFocus) LaunchedEffect(Unit) { runCatching { retryFocus.requestFocus() } }
     Column(

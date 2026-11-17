@@ -7,6 +7,8 @@ import com.moviesnight.tv.data.model.MediaType
 import com.moviesnight.tv.data.model.Rating
 import com.moviesnight.tv.data.model.RecordDetail
 import com.moviesnight.tv.data.model.RecordSummary
+import com.moviesnight.tv.data.model.TierGroup
+import com.moviesnight.tv.data.model.groupByTier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import java.time.Instant
@@ -42,6 +44,13 @@ object SampleRecords {
             hasReview = i % 2 == 0,
         )
     }
+
+    /** Tier list sections: the summaries repeated so S and A wrap onto a second row. */
+    val tierGroups: List<TierGroup> = groupByTier(
+        (0 until 4).flatMap { copy ->
+            summaries.map { it.copy(id = it.id + copy * 100L, tier = it.tier ?: if (copy < 2) "A" else null) }
+        },
+    )
 
     val detail = RecordDetail(
         id = 1,

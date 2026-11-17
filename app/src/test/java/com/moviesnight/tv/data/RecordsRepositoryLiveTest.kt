@@ -58,6 +58,16 @@ class RecordsRepositoryLiveTest {
     }
 
     @Test
+    fun `anime tier list is grouped best tier first`() = runBlocking {
+        val groups = repo.animeTierList()
+        groups.forEach { println("Tier ${it.tier ?: "?"}: ${it.records.size}, first = ${it.records.first().title}") }
+        assertTrue(groups.isNotEmpty())
+        assertEquals(listOf("S", "A", "B", "C", "D", "F", null).filter { t -> groups.any { it.tier == t } }, groups.map { it.tier })
+        val ids = groups.flatMap { g -> g.records.map { it.id } }
+        assertEquals("no duplicates", ids.size, ids.toSet().size)
+    }
+
+    @Test
     fun `detail includes genres`() = runBlocking {
         // id 1 is the first record ever added and has genres in records_ganres
         val detail = repo.detail(1)

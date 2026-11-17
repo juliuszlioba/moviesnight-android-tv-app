@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -66,10 +67,13 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
 ) {
     val selected by viewModel.selected.collectAsStateWithLifecycle()
+    val tierList by viewModel.tierList.collectAsStateWithLifecycle()
     HomeContent(
         selected = selected,
         onSelect = viewModel::select,
         records = viewModel.records::getValue,
+        tierList = tierList,
+        onRetryTierList = viewModel::retryTierList,
         onOpenRecord = onOpenRecord,
         onOpenSearch = onOpenSearch,
     )
@@ -81,6 +85,8 @@ fun HomeContent(
     selected: MediaFilter,
     onSelect: (MediaFilter) -> Unit,
     records: (MediaFilter) -> Flow<PagingData<RecordSummary>>,
+    tierList: TierListState,
+    onRetryTierList: () -> Unit,
     onOpenRecord: (Long) -> Unit,
     onOpenSearch: () -> Unit,
 ) {
@@ -88,6 +94,7 @@ fun HomeContent(
     val gridStates = MediaFilter.entries.associateWith {
         rememberSaveable(it.name, saver = LazyGridState.Saver) { LazyGridState() }
     }
+    val tierListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val tabFocus = remember { MediaFilter.entries.associateWith { FocusRequester() } }
     var headerFocused by remember { mutableStateOf(false) }
     // Last focused poster; focus returns to it when coming back from the detail screen.
@@ -98,7 +105,10 @@ fun HomeContent(
 
     // Back from the grid: jump to the top and the tabs. Back in the header: leave the app.
     BackHandler(enabled = !headerFocused) {
-        scope.launch { gridStates.getValue(selected).scrollToItem(0) }
+        scope.launch {
+            if (selected == MediaFilter.AnimeTiers) tierListState.scrollToItem(0)
+            else gridStates.getValue(selected).scrollToItem(0)
+        }
         runCatching { tabFocus.getValue(selected).requestFocus() }
     }
 
@@ -139,7 +149,18 @@ fun HomeContent(
             }
         }
 
-        key(selected) {
+        if (selected == MediaFilter.AnimeTiers) {
+            AnimeTierList(
+                state = tierList,
+                listState = tierListState,
+                takeFocus = needsFocus,
+                focusTargetId = focusedId,
+                onFocusTaken = { needsFocus = false },
+                onRecordFocused = { focusedId = it },
+                onOpenRecord = onOpenRecord,
+                onRetry = onRetryTierList,
+            )
+        } else key(selected) {
             val items = remember(selected) { records(selected) }.collectAsLazyPagingItems()
             RecordsGrid(
                 items = items,
@@ -217,7 +238,7 @@ private fun FilterTabs(
     }
 }
 
-/** Tabs switch in Interactive mode; Movies/Series/Anime show a smaller sample list. */
+/** Tabs switch in Interactive mode; Movies/Series/Anime show a smaller sample list, the last tab the tier list. */
 @TvScreenPreview
 @Composable
 private fun HomePreview() {
@@ -230,6 +251,8 @@ private fun HomePreview() {
                 if (filter == MediaFilter.All) SampleRecords.paged()
                 else SampleRecords.paged(SampleRecords.summaries.filterIndexed { i, _ -> i % 3 == filter.ordinal - 1 })
             },
+            tierList = TierListState.Loaded(SampleRecords.tierGroups),
+            onRetryTierList = {},
             onOpenRecord = {},
             onOpenSearch = {},
         )
@@ -255,6 +278,8 @@ private fun HomeStatePreview(refresh: LoadState) {
             selected = MediaFilter.All,
             onSelect = {},
             records = { SampleRecords.pagedState(refresh) },
+            tierList = TierListState.Loading,
+            onRetryTierList = {},
             onOpenRecord = {},
             onOpenSearch = {},
         )

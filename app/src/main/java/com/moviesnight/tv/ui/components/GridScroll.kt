@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import kotlin.math.abs
 import kotlin.math.max
@@ -41,6 +42,25 @@ suspend fun LazyGridState.scrollRowToPivot(index: Int, columns: Int, pivotPx: Fl
     val rowsAway = index / columns - anchor.index / columns
     var delta = anchor.offset.y + rowsAway * rowStride - pivotPx
     if (index < columns) {
+        // First row: settle at the very top instead of running into the scroll limit.
+        delta = max(delta, -firstVisibleItemScrollOffset.toFloat())
+    }
+    if (abs(delta) >= 1f) animateScrollBy(delta, RowScroll)
+}
+
+/**
+ * [scrollRowToPivot] for a list whose items are whole rows (the tier list): scrolls so
+ * item [index] rests [pivotPx] from the top of the list.
+ */
+suspend fun LazyListState.scrollItemToPivot(index: Int, pivotPx: Float) {
+    val info = layoutInfo
+    val visible = info.visibleItemsInfo
+    val anchor = visible.firstOrNull { it.index == index }
+        ?: visible.minByOrNull { abs(it.index - index) }
+        ?: return
+    val stride = anchor.size + info.mainAxisItemSpacing
+    var delta = anchor.offset + (index - anchor.index) * stride - pivotPx
+    if (index == 0) {
         // First row: settle at the very top instead of running into the scroll limit.
         delta = max(delta, -firstVisibleItemScrollOffset.toFloat())
     }

@@ -11,22 +11,54 @@ import com.moviesnight.tv.MoviesNightApp
 import com.moviesnight.tv.data.RecordsRepository
 import com.moviesnight.tv.data.model.MediaFilter
 import com.moviesnight.tv.data.model.RecordSummary
+import com.moviesnight.tv.data.model.TierGroup
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-class HomeViewModel(repository: RecordsRepository) : ViewModel() {
+/** The anime tier list tab's content. */
+sealed interface TierListState {
+    data object Loading : TierListState
+    data object Error : TierListState
+    data class Loaded(val groups: List<TierGroup>) : TierListState
+}
+
+class HomeViewModel(private val repository: RecordsRepository) : ViewModel() {
 
     private val _selected = MutableStateFlow(MediaFilter.All)
     val selected: StateFlow<MediaFilter> = _selected.asStateFlow()
 
-    /** One cached stream per tab, so switching tabs keeps what was already loaded. */
+    /** One cached stream per grid tab, so switching tabs keeps what was already loaded. */
     val records: Map<MediaFilter, Flow<PagingData<RecordSummary>>> =
         MediaFilter.entries.associateWith { repository.pagedRecords(it).cachedIn(viewModelScope) }
 
+    private val _tierList = MutableStateFlow<TierListState>(TierListState.Loading)
+    val tierList: StateFlow<TierListState> = _tierList.asStateFlow()
+    private var tierListRequested = false
+
     fun select(filter: MediaFilter) {
         _selected.value = filter
+        // Loaded the first time the tab is opened, then kept.
+        if (filter == MediaFilter.AnimeTiers && !tierListRequested) loadTierList()
+    }
+
+    fun retryTierList() = loadTierList()
+
+    private fun loadTierList() {
+        tierListRequested = true
+        _tierList.value = TierListState.Loading
+        viewModelScope.launch {
+            _tierList.value = try {
+                TierListState.Loaded(repository.animeTierList())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                TierListState.Error
+            }
+        }
     }
 
     companion object {

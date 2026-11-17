@@ -6,6 +6,8 @@ import androidx.paging.PagingData
 import com.moviesnight.tv.data.model.MediaFilter
 import com.moviesnight.tv.data.model.RecordDetail
 import com.moviesnight.tv.data.model.RecordSummary
+import com.moviesnight.tv.data.model.TierGroup
+import com.moviesnight.tv.data.model.groupByTier
 import com.moviesnight.tv.data.remote.DETAIL_COLUMNS
 import com.moviesnight.tv.data.remote.RecordDetailDto
 import com.moviesnight.tv.data.remote.RecordSummaryDto
@@ -52,7 +54,8 @@ class RecordsRepository(private val supabase: SupabaseClient) {
                         MediaFilter.All -> Unit
                         MediaFilter.Movies -> eq("mediatype", "movie")
                         MediaFilter.Series -> eq("mediatype", "series")
-                        MediaFilter.Anime -> filterNot("sort_order_anime", FilterOperator.IS, "null")
+                        MediaFilter.Anime, MediaFilter.AnimeTiers ->
+                            filterNot("sort_order_anime", FilterOperator.IS, "null")
                     }
                     if (!titleQuery.isNullOrBlank()) ilike("title", containsPattern(titleQuery))
                 }
@@ -63,6 +66,29 @@ class RecordsRepository(private val supabase: SupabaseClient) {
             }
             .decodeList<RecordSummaryDto>()
             .map { it.toModel() }
+
+    /**
+     * Every anime grouped by tier, each tier in anime-list order (`sort_order_anime`),
+     * as on the website's /anime/tier. A few hundred rows, so it's loaded in one go.
+     */
+    suspend fun animeTierList(): List<TierGroup> {
+        val records = mutableListOf<RecordSummary>()
+        // PostgREST caps a response at max_rows (1000), so fetch in chunks.
+        while (true) {
+            val chunk = supabase.from(TABLE)
+                .select(Columns.raw(SUMMARY_COLUMNS)) {
+                    filter { filterNot("sort_order_anime", FilterOperator.IS, "null") }
+                    order("sort_order_anime", Order.ASCENDING)
+                    order("id", Order.ASCENDING)
+                    range(records.size.toLong(), (records.size + TIER_CHUNK - 1).toLong())
+                }
+                .decodeList<RecordSummaryDto>()
+                .map { it.toModel() }
+            records += chunk
+            if (chunk.size < TIER_CHUNK) break
+        }
+        return groupByTier(records)
+    }
 
     suspend fun detail(id: Long): RecordDetail =
         supabase.from(TABLE)
@@ -79,5 +105,6 @@ class RecordsRepository(private val supabase: SupabaseClient) {
 
         const val PAGE_SIZE = 42 // 7 full rows of the 6-column grid
         private const val TABLE = "records"
+        private const val TIER_CHUNK = 1000
     }
 }

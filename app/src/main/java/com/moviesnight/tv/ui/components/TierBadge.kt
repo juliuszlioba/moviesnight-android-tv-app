@@ -34,6 +34,9 @@ private val TierColors = mapOf(
     "F" to Color(0xFF9333EA), // purple-600
 )
 
+/** The website's color for [tier], or null for no tier or an unknown one. */
+fun tierColor(tier: String?): Color? = TierColors[tier]
+
 /** Sticker sizes: grid cards and the larger detail-screen poster. */
 enum class TierBadgeSize(
     val fontSize: TextUnit,

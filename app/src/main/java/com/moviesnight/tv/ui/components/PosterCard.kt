@@ -65,6 +65,8 @@ fun PosterCard(
     record: RecordSummary,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Off where the tier is already clear from the surroundings (the tier list). */
+    showTier: Boolean = true,
 ) {
     var focused by remember { mutableStateOf(false) }
     val captionAlpha by animateFloatAsState(if (focused) 1f else 0f, label = "caption")
@@ -110,7 +112,7 @@ fun PosterCard(
                     )
                 }
             }
-            TierBadge(
+            if (showTier) TierBadge(
                 tier = record.tier,
                 size = TierBadgeSize.Small,
                 modifier = Modifier
