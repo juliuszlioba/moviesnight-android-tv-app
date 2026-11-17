@@ -7,14 +7,18 @@ anime I've watched and how I rated them, read directly from the Supabase databas
 It's for personal use only. It's sideloaded with adb and will never go to a store. It needs no login,
 because it only reads what the database already exposes publicly through RLS.
 
-**What it does (v0.1.0)**
+**What it does (v0.2.0)**
 
 - Home: logo on the left, tabs on the right (**All · Movies · Series · Anime**), and a 6-column poster
   grid sorted by watched date, newest first. Pages load as you scroll.
 - Each card shows the poster, the stars (rating 1–10 shown as 5 stars with halves) and the S–F tier
-  sticker, if set. The focused card scales up and shows its title and year.
+  sticker, if set. A yellow thumbs-up sticker marks records in the movie or series top list
+  ("Highly recommended", as on the website), and a small speech bubble after the stars marks records
+  with a review. The focused card scales up and shows its title and year.
 - OK opens the detail screen: a large poster, title, year/type, stars, watched date, genres, the
-  recommendation (yellow quote, as on the website) and the review. Up/Down scroll long reviews.
+  "Highly recommended to see!" line, the recommendation (yellow quote, as on the website) and the
+  review. Up/Down scroll long reviews.
+- Search (magnifier left of the tabs) finds records by title as you type.
 - Back returns to the same poster in the grid. Back from inside the grid jumps to the top and the tabs;
   Back on the tabs exits.
 
@@ -243,6 +247,5 @@ Fonts: `res/font/inter.ttf` (UI) and `res/font/geist.ttf` (wordmark). Both are v
 
 - Hide the "Series" pseudo-genre on the detail screen.
 - Yellow quote mark on reviews too (the website uses it for both).
-- "Highly recommended" badge (`sort_order_movie` / `sort_order_series`), like the website.
-- Search, sort by rating, or a filter by tier.
+- Sort by rating, or a filter by tier.
 - Refresh when returning to the app, so new records from the website appear without restarting.
