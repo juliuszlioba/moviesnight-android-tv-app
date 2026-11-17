@@ -26,10 +26,20 @@ private val RowScroll = tween<Float>(durationMillis = 300, easing = CubicBezierE
  * Scrolls so the row containing [index] rests [pivotPx] from the top of the grid:
  * a sliver of the row above stays visible and the next row peeks in below, so the
  * D-pad always has a composed row to move to. Moving within a row scrolls nothing.
+ *
+ * When Down is pressed faster than the glide, focus can reach a row that isn't on screen
+ * yet (the previous glide was cancelled mid-way). Its position is then worked out from
+ * the nearest visible row, so the grid still follows instead of leaving focus off screen.
  */
 suspend fun LazyGridState.scrollRowToPivot(index: Int, columns: Int, pivotPx: Float) {
-    val item = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return
-    var delta = item.offset.y - pivotPx
+    val info = layoutInfo
+    val visible = info.visibleItemsInfo.filter { it.index >= 0 }
+    val anchor = visible.firstOrNull { it.index == index }
+        ?: visible.minByOrNull { abs(it.index / columns - index / columns) }
+        ?: return
+    val rowStride = anchor.size.height + info.mainAxisItemSpacing
+    val rowsAway = index / columns - anchor.index / columns
+    var delta = anchor.offset.y + rowsAway * rowStride - pivotPx
     if (index < columns) {
         // First row: settle at the very top instead of running into the scroll limit.
         delta = max(delta, -firstVisibleItemScrollOffset.toFloat())
