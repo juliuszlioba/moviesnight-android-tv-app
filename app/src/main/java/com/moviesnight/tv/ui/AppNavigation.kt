@@ -9,17 +9,21 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.moviesnight.tv.ui.detail.DetailScreen
 import com.moviesnight.tv.ui.home.HomeScreen
+import com.moviesnight.tv.ui.search.SearchScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
 object HomeRoute
 
 @Serializable
+object SearchRoute
+
+@Serializable
 data class DetailRoute(val id: Long)
 
 private const val FADE_MS = 220
 
-/** Home grid → detail. System Back pops the detail screen. */
+/** Home grid → detail, and home → search → detail. System Back pops a screen. */
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
@@ -32,7 +36,13 @@ fun AppNavigation() {
         popExitTransition = { fadeOut(tween(FADE_MS)) },
     ) {
         composable<HomeRoute> {
-            HomeScreen(onOpenRecord = { id ->
+            HomeScreen(
+                onOpenRecord = { id -> navController.navigate(DetailRoute(id)) { launchSingleTop = true } },
+                onOpenSearch = { navController.navigate(SearchRoute) { launchSingleTop = true } },
+            )
+        }
+        composable<SearchRoute> {
+            SearchScreen(onOpenRecord = { id ->
                 navController.navigate(DetailRoute(id)) { launchSingleTop = true }
             })
         }

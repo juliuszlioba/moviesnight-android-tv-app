@@ -22,6 +22,13 @@ class RecordsRepository(private val supabase: SupabaseClient) {
 
     /** Newest watched first, loaded [PAGE_SIZE] at a time as the grid scrolls. */
     fun pagedRecords(filter: MediaFilter): Flow<PagingData<RecordSummary>> =
+        pager { offset, limit -> page(filter, offset, limit) }
+
+    /** Records whose title contains [query] (case-insensitive), newest watched first. */
+    fun searchRecords(query: String): Flow<PagingData<RecordSummary>> =
+        pager { offset, limit -> page(MediaFilter.All, offset, limit, titleQuery = query) }
+
+    private fun pager(fetch: suspend (offset: Int, limit: Int) -> List<RecordSummary>) =
         Pager(
             config = PagingConfig(
                 pageSize = PAGE_SIZE,
@@ -29,10 +36,15 @@ class RecordsRepository(private val supabase: SupabaseClient) {
                 prefetchDistance = PAGE_SIZE / 2,
                 enablePlaceholders = false,
             ),
-            pagingSourceFactory = { RecordsPagingSource { offset, limit -> page(filter, offset, limit) } },
+            pagingSourceFactory = { RecordsPagingSource(fetch) },
         ).flow
 
-    suspend fun page(filter: MediaFilter, offset: Int, limit: Int): List<RecordSummary> =
+    suspend fun page(
+        filter: MediaFilter,
+        offset: Int,
+        limit: Int,
+        titleQuery: String? = null,
+    ): List<RecordSummary> =
         supabase.from(TABLE)
             .select(Columns.raw(SUMMARY_COLUMNS)) {
                 filter {
@@ -42,6 +54,7 @@ class RecordsRepository(private val supabase: SupabaseClient) {
                         MediaFilter.Series -> eq("mediatype", "series")
                         MediaFilter.Anime -> filterNot("sort_order_anime", FilterOperator.IS, "null")
                     }
+                    if (!titleQuery.isNullOrBlank()) ilike("title", containsPattern(titleQuery))
                 }
                 // id as tie-breaker keeps page boundaries stable for equal timestamps
                 order("watchedat", Order.DESCENDING, nullsFirst = false)
@@ -60,6 +73,10 @@ class RecordsRepository(private val supabase: SupabaseClient) {
             .toModel()
 
     companion object {
+        /** `%query%` for ILIKE, with the user's own `%`, `_` and `\` matched literally. */
+        fun containsPattern(query: String): String =
+            "%" + query.trim().replace(Regex("""[\\%_]""")) { "\\" + it.value } + "%"
+
         const val PAGE_SIZE = 42 // 7 full rows of the 6-column grid
         private const val TABLE = "records"
     }
