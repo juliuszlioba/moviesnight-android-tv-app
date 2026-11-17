@@ -1,0 +1,11 @@
+# Copy to local.properties (git-ignored) and fill in. See README → "First-time setup".
+sdk.dir=C\:/Users/<you>/AppData/Local/Android/Sdk
+
+# Production Supabase (values from .env), used by release builds.
+supabase.url=https://<project-ref>.supabase.co
+supabase.key=<publishable key>
+
+# Local Docker Supabase (key from .env.local), used by debug and profile builds.
+# Use the PC's LAN IP: 127.0.0.1 would point at the TV/emulator itself.
+supabase.local.url=http://<pc-lan-ip>:54321
+supabase.local.key=<local publishable key>

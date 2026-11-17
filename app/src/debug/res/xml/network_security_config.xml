@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: allow plain HTTP so the app can reach the local Docker
+     Supabase (http://<pc-lan-ip>:54321). Release builds keep Android's default (HTTPS only). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
