@@ -103,18 +103,18 @@ fun DetailContent(state: DetailUiState, onRetry: () -> Unit) {
     when (state) {
         DetailUiState.Loading -> LoadingDetail()
         DetailUiState.Error -> ErrorDetail(onRetry = onRetry)
-        is DetailUiState.Loaded -> LoadedDetail(state.record)
+        is DetailUiState.Loaded -> LoadedDetail(state.record, state.description)
     }
 }
 
 @Composable
-private fun LoadedDetail(record: RecordDetail) {
+private fun LoadedDetail(record: RecordDetail, description: String?) {
     Row(
         modifier = Modifier.fillMaxSize().then(ScreenPadding),
         horizontalArrangement = Arrangement.spacedBy(48.dp),
     ) {
         Poster(record)
-        ScrollableInfo(record, Modifier.weight(1f).fillMaxHeight())
+        ScrollableInfo(record, description, Modifier.weight(1f).fillMaxHeight())
     }
 }
 
@@ -169,7 +169,7 @@ private fun Poster(record: RecordDetail) {
  * reviews can be read with the remote; Back is left to navigation.
  */
 @Composable
-private fun ScrollableInfo(record: RecordDetail, modifier: Modifier) {
+private fun ScrollableInfo(record: RecordDetail, description: String?, modifier: Modifier) {
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
     val focus = remember { FocusRequester() }
@@ -198,7 +198,7 @@ private fun ScrollableInfo(record: RecordDetail, modifier: Modifier) {
         ) {
             Text(
                 record.title,
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.displaySmall.copy(fontSize = 32.sp),
                 color = TextPrimary,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
@@ -220,6 +220,16 @@ private fun ScrollableInfo(record: RecordDetail, modifier: Modifier) {
                     record.genres.joinToString(" · "),
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                     color = TextSecondary.copy(alpha = 0.6f),
+                )
+            }
+
+            // TMDB's synopsis: secondary to the review, so smaller and dimmer.
+            description?.let {
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp),
+                    color = TextSecondary,
                 )
             }
 
@@ -314,7 +324,7 @@ private fun ErrorDetail(onRetry: () -> Unit) {
 @TvScreenPreview
 @Composable
 private fun DetailPreview() {
-    PreviewSurface { DetailContent(DetailUiState.Loaded(SampleRecords.detail), onRetry = {}) }
+    PreviewSurface { DetailContent(DetailUiState.Loaded(SampleRecords.detail, SampleRecords.description), onRetry = {}) }
 }
 
 /** No poster, tier, rating, date, genres, recommendation or top-list place. */

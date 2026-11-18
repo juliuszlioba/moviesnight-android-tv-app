@@ -15,7 +15,7 @@ internal const val SUMMARY_COLUMNS =
 
 /** All record columns plus genres through the records_ganres join table. */
 internal const val DETAIL_COLUMNS =
-    "id,mediatype,title,year,poster,rating,watchedat,recommendation,review,tier," +
+    "id,mediatype,title,year,tmdbid,poster,rating,watchedat,recommendation,review,tier," +
         "sort_order_anime,sort_order_movie,sort_order_series,records_ganres(ganres(title))"
 
 @Serializable
@@ -51,6 +51,7 @@ internal data class RecordDetailDto(
     val mediatype: String,
     val title: String,
     val year: Int,
+    val tmdbid: Int? = null,
     val poster: String? = null,
     val rating: Int? = null,
     val watchedat: String? = null,
@@ -68,6 +69,7 @@ internal data class RecordDetailDto(
         isAnime = sortOrderAnime != null,
         title = title,
         year = year,
+        tmdbId = tmdbid,
         posterPath = poster?.takeIf { it.isNotBlank() },
         rating = Rating.of(rating),
         watchedAt = parseTimestamp(watchedat),

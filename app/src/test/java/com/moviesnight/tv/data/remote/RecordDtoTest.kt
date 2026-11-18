@@ -56,7 +56,7 @@ class RecordDtoTest {
     fun `decodes detail with genres through the join table`() {
         val detail = json.decodeFromString<RecordDetailDto>(
             """
-            {"id":1203,"mediatype":"series","title":"Shelter","year":2026,"poster":"/p.jpg","rating":8,
+            {"id":1203,"mediatype":"series","title":"Shelter","year":2026,"tmdbid":245927,"poster":"/p.jpg","rating":8,
              "watchedat":"2026-03-07T14:28:38+00:00","recommendation":" Good action movie ","review":"  ",
              "tier":null,"sort_order_anime":71,"sort_order_movie":null,"sort_order_series":12,
              "records_ganres":[{"ganres":{"title":"Thriller"}},{"ganres":{"title":"Action"}},{"ganres":null}]}
@@ -64,6 +64,7 @@ class RecordDtoTest {
         ).toModel()
 
         assertEquals(MediaType.Series, detail.mediaType)
+        assertEquals(245927, detail.tmdbId)
         assertTrue(detail.isAnime)
         assertTrue(detail.highlyRecommended)
         assertEquals(listOf("Action", "Thriller"), detail.genres)

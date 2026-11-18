@@ -14,6 +14,16 @@ val localProps = Properties().apply {
 fun localProp(name: String): String =
     localProps.getProperty(name) ?: error("Missing '$name' in local.properties")
 
+// TMDB v3 API key (TMDB_API_KEY in the git-ignored .env, shared with the website).
+// Optional: without it the detail screen just has no description.
+val tmdbApiKey: String = rootProject.file(".env").takeIf { it.exists() }
+    ?.readLines()
+    ?.firstNotNullOfOrNull { line ->
+        line.trim().takeIf { it.startsWith("TMDB_API_KEY=") }
+            ?.substringAfter("=")?.trim()?.trim('"', '\'')
+    }
+    .orEmpty()
+
 /** Points a build type at a Supabase project: "" = production, "local." = local Docker. */
 fun com.android.build.api.dsl.ApplicationBuildType.supabase(prefix: String) {
     buildConfigField("String", "SUPABASE_URL", "\"${localProp("supabase.${prefix}url")}\"")
@@ -30,6 +40,7 @@ android {
         targetSdk = 37
         versionCode = 4
         versionName = "0.4.0"
+        buildConfigField("String", "TMDB_API_KEY", "\"$tmdbApiKey\"")
     }
 
     // release → production Supabase (HTTPS). debug/profile → local Docker over the LAN.

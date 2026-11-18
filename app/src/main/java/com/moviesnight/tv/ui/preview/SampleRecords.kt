@@ -72,6 +72,11 @@ object SampleRecords {
         highlyRecommended = true,
     )
 
+    /** TMDB-style overview for [detail]. */
+    const val description =
+        "Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while " +
+            "on a path of revenge against the conspirators who destroyed his family."
+
     /** Anime series with no poster, no tier, no recommendation and a short review. */
     val sparseDetail = RecordDetail(
         id = 6,

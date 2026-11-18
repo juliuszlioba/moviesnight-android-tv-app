@@ -34,6 +34,8 @@ data class RecordDetail(
     val tier: String?,
     /** In the movie or series top list (not the anime one). */
     val highlyRecommended: Boolean = false,
+    /** Links to TMDB's /movie or /tv details, where the description comes from. */
+    val tmdbId: Int? = null,
 )
 
 enum class MediaType { Movie, Series;

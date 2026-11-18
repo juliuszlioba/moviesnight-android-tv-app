@@ -53,6 +53,9 @@ There's no DI framework: `MoviesNightApp` holds the repository and the Coil imag
    - `supabase.local.url`: `http://<this PC's LAN IP>:54321` (`ipconfig` → IPv4)
    - `supabase.local.key`: from `.env.local`
 
+   The build also reads `TMDB_API_KEY` (TMDB API v3 key) straight from `.env` for the detail
+   screen's description. Without it the app still builds; the description is just left out.
+
    `local.properties`, `.env` and `.env.local` are git-ignored. The publishable key is a public,
    read-only key, but keep it out of git anyway.
 3. Open the folder in Android Studio and let Gradle sync. Or use the command line: in a plain terminal,
@@ -158,6 +161,9 @@ The app only reads. Everything goes through `data/RecordsRepository.kt`.
   "Series" entry (id 1).
 - **Posters** are TMDB paths (`/abc.jpg`), loaded from `image.tmdb.org/t/p/w342` (grid) and `w780`
   (detail). `data/remote/Tmdb.kt`.
+- **Description** on the detail screen is TMDB's `overview` from `/3/movie/{tmdbid}` or
+  `/3/tv/{tmdbid}` (v3, `api_key` query param). It's fetched with the record (3 s cap) so the text
+  doesn't jump in later; if TMDB is slow or fails, the screen shows without it.
 - **Tier list** (`animeTierList()`): all anime ordered by `sort_order_anime`, fetched in chunks of
   1000 (PostgREST `max_rows`), then grouped by tier in `data/model/TierList.kt`. Same query as the
   website's `fetchAllAnimeTierRecords`.
