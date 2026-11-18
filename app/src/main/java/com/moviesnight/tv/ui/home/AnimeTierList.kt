@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,8 +66,8 @@ import com.moviesnight.tv.ui.theme.TextSecondary
 import kotlinx.coroutines.launch
 
 private const val COLUMNS = 6
-private val LabelWidth = 80.dp
-private val LabelHeight = 92.dp
+private val LabelWidth = 64.dp
+private val LabelHeight = 108.dp
 /** Space between the tier label column and the first poster. */
 private val LabelGap = 24.dp
 private val PosterGap = 20.dp
@@ -91,7 +92,7 @@ private class TierRow(
 /**
  * The anime tier list: each tier's posters wrap to the right of a colored label column.
  * The label (letter + count) sticks to the top while scrolling through a long tier, and a
- * faint band in the tier's color runs down beside all of its rows.
+ * solid band in the tier's color runs down beside all of its rows.
  *
  * Focus works like [com.moviesnight.tv.ui.components.RecordsGrid]: [takeFocus] focuses
  * [focusTargetId] if it's in the list, otherwise the first visible poster.
@@ -106,15 +107,17 @@ fun AnimeTierList(
     onRecordFocused: (Long) -> Unit,
     onOpenRecord: (Long) -> Unit,
     onRetry: () -> Unit,
+    topInset: Dp = 0.dp,
+    contentFocus: FocusRequester? = null,
 ) {
     when (state) {
-        TierListState.Loading -> LoadingGrid()
-        TierListState.Error -> ErrorState("Couldn't load the tier list.", onRetry, takeFocus)
+        TierListState.Loading -> LoadingGrid(topInset)
+        TierListState.Error -> ErrorState("Couldn't load the tier list.", onRetry, takeFocus, topInset)
         is TierListState.Loaded ->
             if (state.groups.isEmpty()) {
-                CenteredMessage("No anime in the tier list yet.")
+                CenteredMessage("No anime in the tier list yet.", topInset)
             } else {
-                TierRows(state.groups, listState, takeFocus, focusTargetId, onFocusTaken, onRecordFocused, onOpenRecord)
+                TierRows(state.groups, listState, takeFocus, focusTargetId, onFocusTaken, onRecordFocused, onOpenRecord, topInset, contentFocus)
             }
     }
 }
@@ -129,6 +132,8 @@ private fun TierRows(
     onFocusTaken: () -> Unit,
     onRecordFocused: (Long) -> Unit,
     onOpenRecord: (Long) -> Unit,
+    topInset: Dp,
+    contentFocus: FocusRequester?,
 ) {
     val rows = remember(groups) {
         groups.flatMapIndexed { g, group ->
@@ -157,10 +162,13 @@ private fun TierRows(
         CompositionLocalProvider(LocalBringIntoViewSpec provides NoAutoScroll) {
             LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(start = EdgePadding, end = EdgePadding, top = TopPadding, bottom = 48.dp),
+                contentPadding = PaddingValues(start = EdgePadding, end = EdgePadding, top = topInset + TopPadding, bottom = 48.dp),
                 verticalArrangement = Arrangement.spacedBy(RowGap),
                 // Coming back down from the header returns to the last focused poster.
-                modifier = Modifier.fillMaxSize().focusRestorer(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (contentFocus != null) Modifier.focusRequester(contentFocus) else Modifier)
+                    .focusRestorer(),
             ) {
                 itemsIndexed(rows, key = { _, row -> row.records.first().id }) { r, row ->
                     Row(
@@ -194,7 +202,7 @@ private fun TierRows(
                 }
             }
         }
-        TierLabels(groups, rows, listState)
+        TierLabels(groups, rows, listState, topInset)
     }
 }
 
@@ -213,12 +221,13 @@ private fun LazyListLayoutInfo.tierSpan(group: Int, rows: List<TierRow>, tierGap
     return top..bottom
 }
 
-/** The label column: a faint band per tier with its sticky letter tile on top. */
+/** The label column: a solid band per tier in its color with its sticky letter tile on top. */
 @Composable
-private fun TierLabels(groups: List<TierGroup>, rows: List<TierRow>, listState: LazyListState) {
+private fun TierLabels(groups: List<TierGroup>, rows: List<TierRow>, listState: LazyListState, topInset: Dp) {
     val density = LocalDensity.current
     val tierGapPx = with(density) { TierGap.toPx() }
-    val stickyTopPx = with(density) { TopPadding.toPx() }
+    // Labels stick just below the header, which the bands scroll under.
+    val stickyTopPx = with(density) { (topInset + TopPadding).toPx() }
     val labelHeightPx = with(density) { LabelHeight.toPx() }
     val cornerPx = with(density) { 10.dp.toPx() }
 
@@ -239,7 +248,7 @@ private fun TierLabels(groups: List<TierGroup>, rows: List<TierRow>, listState: 
                 val bottom = span.endInclusive.coerceAtMost(size.height + cornerPx)
                 if (bottom <= top) return@forEachIndexed
                 drawRoundRect(
-                    color = (tierColor(group.tier) ?: UnrankedColor).copy(alpha = 0.14f),
+                    color = tierColor(group.tier) ?: UnrankedColor,
                     topLeft = Offset(0f, top),
                     size = Size(size.width, bottom - top),
                     cornerRadius = CornerRadius(cornerPx),
@@ -264,7 +273,7 @@ private fun TierLabels(groups: List<TierGroup>, rows: List<TierRow>, listState: 
     }
 }
 
-/** Solid tile in the tier's color: the letter and how many anime it holds. */
+/** Solid tile in the tier's color: the letter, "TIER" under it, and how many anime it holds. */
 @Composable
 private fun TierLabel(group: TierGroup, modifier: Modifier = Modifier) {
     val color = tierColor(group.tier)
@@ -282,6 +291,18 @@ private fun TierLabel(group: TierGroup, modifier: Modifier = Modifier) {
             group.tier ?: "?",
             style = MaterialTheme.typography.displaySmall.copy(fontSize = 38.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold),
             color = content,
+        )
+        Text(
+            "TIER",
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold),
+            color = content.copy(alpha = 0.9f),
+        )
+        // Thin rule between "TIER" and the count.
+        Box(
+            Modifier
+                .padding(vertical = 4.dp)
+                .size(width = 24.dp, height = 1.dp)
+                .background(content.copy(alpha = 0.6f)),
         )
         Text(
             group.records.size.toString(),

@@ -40,6 +40,7 @@ import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
@@ -66,6 +67,9 @@ private val RowPivot = 140.dp
  *
  * @param takeFocus focus a poster as soon as one is shown: [focusTargetId] if it's
  *   loaded, otherwise the first visible one. [onFocusTaken] is called once it has focus.
+ * @param topInset height of a header drawn over the grid; posters start below it and
+ *   scroll up underneath it.
+ * @param contentFocus attached to the grid; requesting it returns to the last focused poster.
  */
 @OptIn(ExperimentalFoundationApi::class) // LocalBringIntoViewSpec
 @Composable
@@ -80,16 +84,19 @@ fun RecordsGrid(
     emptyMessage: String = "Nothing here yet.",
     errorMessage: String = "Couldn't load your list.",
     showRecommended: Boolean = true,
+    topInset: Dp = 0.dp,
+    contentFocus: FocusRequester? = null,
 ) {
     val refresh = items.loadState.refresh
     when {
-        items.itemCount == 0 && refresh is LoadState.Loading -> LoadingGrid()
+        items.itemCount == 0 && refresh is LoadState.Loading -> LoadingGrid(topInset)
         items.itemCount == 0 && refresh is LoadState.Error -> ErrorState(
             message = errorMessage,
             onRetry = items::retry,
             takeFocus = takeFocus,
+            topInset = topInset,
         )
-        items.itemCount == 0 && refresh is LoadState.NotLoading -> CenteredMessage(emptyMessage)
+        items.itemCount == 0 && refresh is LoadState.NotLoading -> CenteredMessage(emptyMessage, topInset)
         else -> {
             // Focus the remembered poster if it's on screen, else the first visible one.
             val targetFocus = remember { FocusRequester() }
@@ -110,11 +117,14 @@ fun RecordsGrid(
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(COLUMNS),
                     state = state,
-                    contentPadding = PaddingValues(start = EdgePadding, end = EdgePadding, top = 20.dp, bottom = 48.dp),
+                    contentPadding = PaddingValues(start = EdgePadding, end = EdgePadding, top = topInset + 20.dp, bottom = 48.dp),
                     horizontalArrangement = Arrangement.spacedBy(GridGap),
                     verticalArrangement = Arrangement.spacedBy(28.dp),
                     // Coming back down from the header returns to the last focused poster.
-                    modifier = Modifier.fillMaxSize().focusRestorer(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (contentFocus != null) Modifier.focusRequester(contentFocus) else Modifier)
+                        .focusRestorer(),
                 ) {
                     items(count = items.itemCount, key = items.itemKey { it.id }) { index ->
                         val record = items[index] ?: return@items
@@ -147,7 +157,7 @@ fun RecordsGrid(
 
 /** Quiet pulsing poster placeholders while the first page loads. */
 @Composable
-fun LoadingGrid() {
+fun LoadingGrid(topInset: Dp = 0.dp) {
     val pulse by rememberInfiniteTransition(label = "pulse").animateFloat(
         initialValue = 0.35f,
         targetValue = 0.7f,
@@ -156,7 +166,7 @@ fun LoadingGrid() {
     )
     LazyVerticalGrid(
         columns = GridCells.Fixed(COLUMNS),
-        contentPadding = PaddingValues(start = EdgePadding, end = EdgePadding, top = 20.dp),
+        contentPadding = PaddingValues(start = EdgePadding, end = EdgePadding, top = topInset + 20.dp),
         horizontalArrangement = Arrangement.spacedBy(GridGap),
         verticalArrangement = Arrangement.spacedBy(28.dp),
         userScrollEnabled = false,
@@ -176,11 +186,11 @@ fun LoadingGrid() {
 
 /** Message plus a Retry button, which takes focus when [takeFocus] is set. */
 @Composable
-fun ErrorState(message: String, onRetry: () -> Unit, takeFocus: Boolean) {
+fun ErrorState(message: String, onRetry: () -> Unit, takeFocus: Boolean, topInset: Dp = 0.dp) {
     val retryFocus = remember { FocusRequester() }
     if (takeFocus) LaunchedEffect(Unit) { runCatching { retryFocus.requestFocus() } }
     Column(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxSize().padding(top = topInset),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -194,8 +204,8 @@ fun ErrorState(message: String, onRetry: () -> Unit, takeFocus: Boolean) {
 
 /** A quiet line of text centered in the space the grid would take. */
 @Composable
-fun CenteredMessage(text: String) {
-    Box(Modifier.fillMaxSize().padding(horizontal = EdgePadding), contentAlignment = Alignment.Center) {
+fun CenteredMessage(text: String, topInset: Dp = 0.dp) {
+    Box(Modifier.fillMaxSize().padding(start = EdgePadding, end = EdgePadding, top = topInset), contentAlignment = Alignment.Center) {
         Text(text, style = MaterialTheme.typography.titleMedium, color = TextSecondary, textAlign = TextAlign.Center)
     }
 }

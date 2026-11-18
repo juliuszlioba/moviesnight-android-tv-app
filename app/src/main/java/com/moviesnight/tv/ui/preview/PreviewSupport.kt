@@ -21,11 +21,11 @@ import kotlin.math.absoluteValue
  * A full Shield screen: 1920×1080 px at xhdpi (320 dpi) is 960×540 dp, the same
  * size the app lays out for on the device and the TV emulator.
  */
-@Preview(name = "Shield 1080p", device = "spec:width=960dp,height=540dp,dpi=320", showBackground = true, backgroundColor = 0xFF0E0E0E)
+@Preview(name = "Shield 1080p", device = "spec:width=960dp,height=540dp,dpi=320", showBackground = true, backgroundColor = 0xFF000000)
 annotation class TvScreenPreview
 
 /** A single component on the app background, sized to its content. */
-@Preview(showBackground = true, backgroundColor = 0xFF0E0E0E, widthDp = 960)
+@Preview(showBackground = true, backgroundColor = 0xFF000000, widthDp = 960)
 annotation class TvComponentPreview
 
 /**

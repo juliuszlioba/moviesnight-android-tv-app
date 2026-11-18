@@ -2,8 +2,8 @@ package com.moviesnight.tv.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-/** Near-black canvas so posters carry all the color. */
-val Background = Color(0xFF0E0E0E)
+/** Pure black: OLED pixels switch off, and posters carry all the color. */
+val Background = Color(0xFF000000)
 val Surface = Color(0xFF1A1A1A)
 val SurfaceFocused = Color(0xFF262626)
 
