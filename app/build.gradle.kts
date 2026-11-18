@@ -38,8 +38,8 @@ android {
         applicationId = "com.moviesnight.tv"
         minSdk = 28
         targetSdk = 37
-        versionCode = 6
-        versionName = "0.6.0"
+        versionCode = 7
+        versionName = "1.0.0"
         buildConfigField("String", "TMDB_API_KEY", "\"$tmdbApiKey\"")
     }
 
