@@ -289,9 +289,6 @@ Fonts: `res/font/inter.ttf` (UI) and `res/font/geist.ttf` (wordmark). Both are v
 
 ---
 
-## Ideas for later
+## Acknowledgments
 
-- Hide the "Series" pseudo-genre on the detail screen.
-- Yellow quote mark on reviews too (the website uses it for both).
-- Sort by rating.
-- Refresh when returning to the app, so new records from the website appear without restarting.
+This app was built with the help of AI coding tools. I used [T3 Code](https://t3.codes/) as my main application throughout development. AI made it possible to bring this dream project to life in almost no time, even though I have very little knowledge of Android development.
