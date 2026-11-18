@@ -24,12 +24,25 @@ class RecordsRepositoryLiveTest {
 
     @Test
     fun `every tab returns rows sorted newest first`() = runBlocking {
-        for (filter in MediaFilter.entries) {
+        for (filter in MediaFilter.entries.filter { it.topListColumn == null }) {
             val page = repo.page(filter, offset = 0, limit = RecordsRepository.PAGE_SIZE)
             println("$filter: ${page.size} rows, first = ${page.firstOrNull()?.title}")
             assertEquals("$filter page size", RecordsRepository.PAGE_SIZE, page.size)
             val times = page.mapNotNull { it.watchedAt }
             assertEquals("$filter sorted", times.sortedDescending(), times)
+        }
+    }
+
+    @Test
+    fun `top list tabs return only listed records`() = runBlocking {
+        for (filter in MediaFilter.entries.filter { it.topListColumn != null }) {
+            val page = repo.page(filter, offset = 0, limit = RecordsRepository.PAGE_SIZE)
+            println("$filter: ${page.size} rows, first = ${page.firstOrNull()?.title}")
+            assertTrue("$filter not empty", page.isNotEmpty())
+            if (filter != MediaFilter.TopAnime) {
+                // movie/series list membership is what makes a record highly recommended
+                assertTrue("$filter all listed", page.all { it.highlyRecommended })
+            }
         }
     }
 

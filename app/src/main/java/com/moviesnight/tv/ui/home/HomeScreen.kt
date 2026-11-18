@@ -4,10 +4,12 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.runtime.Composable
@@ -129,8 +131,8 @@ fun HomeContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                // Tabs carry 12dp inner padding, so pull them out to line up with the grid edge.
-                .padding(start = EdgePadding, end = EdgePadding - 12.dp, top = 24.dp, bottom = 12.dp),
+                // Tabs carry TabPadding inside, so pull them out to line up with the grid edge.
+                .padding(start = EdgePadding, end = EdgePadding - TabPadding, top = 24.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -170,10 +172,14 @@ fun HomeContent(
                 onFocusTaken = { needsFocus = false },
                 onRecordFocused = { focusedId = it },
                 onOpenRecord = onOpenRecord,
+                // Being on these lists is what makes a record highly recommended.
+                showRecommended = selected != MediaFilter.TopMovies && selected != MediaFilter.TopSeries,
             )
         }
     }
 }
+
+private val TabPadding = 8.dp
 
 /** Magnifier left of the tabs; Left from the first tab reaches it. */
 @Composable
@@ -205,6 +211,8 @@ private fun FilterTabs(
         selectedTabIndex = selectedIndex,
         // Coming up from the grid lands on the current tab instead of the nearest one.
         modifier = modifier.focusRestorer(focusRequesters.getValue(selected)),
+        // Tab padding alone spaces the labels, so all eight fit in the header.
+        separator = { Spacer(Modifier.width(0.dp)) },
         indicator = { positions, rowFocused ->
             positions.getOrNull(selectedIndex)?.let {
                 TabRowDefaults.UnderlinedIndicator(
@@ -231,14 +239,14 @@ private fun FilterTabs(
                 Text(
                     filter.label,
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = TabPadding, vertical = 8.dp),
                 )
             }
         }
     }
 }
 
-/** Tabs switch in Interactive mode; Movies/Series/Anime show a smaller sample list, the last tab the tier list. */
+/** Tabs switch in Interactive mode; the other grid tabs show a smaller sample list, the last tab the tier list. */
 @TvScreenPreview
 @Composable
 private fun HomePreview() {
@@ -249,7 +257,7 @@ private fun HomePreview() {
             onSelect = { selected = it },
             records = { filter ->
                 if (filter == MediaFilter.All) SampleRecords.paged()
-                else SampleRecords.paged(SampleRecords.summaries.filterIndexed { i, _ -> i % 3 == filter.ordinal - 1 })
+                else SampleRecords.paged(SampleRecords.summaries.filterIndexed { i, _ -> i % 3 == filter.ordinal % 3 })
             },
             tierList = TierListState.Loaded(SampleRecords.tierGroups),
             onRetryTierList = {},

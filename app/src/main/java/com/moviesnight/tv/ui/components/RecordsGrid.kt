@@ -79,6 +79,7 @@ fun RecordsGrid(
     onOpenRecord: (Long) -> Unit,
     emptyMessage: String = "Nothing here yet.",
     errorMessage: String = "Couldn't load your list.",
+    showRecommended: Boolean = true,
 ) {
     val refresh = items.loadState.refresh
     when {
@@ -120,6 +121,7 @@ fun RecordsGrid(
                         PosterCard(
                             record = record,
                             onClick = { onOpenRecord(record.id) },
+                            showRecommended = showRecommended,
                             modifier = Modifier
                                 .then(if (index == targetIndex) Modifier.focusRequester(targetFocus) else Modifier)
                                 .onFocusChanged {

@@ -22,7 +22,10 @@ import kotlinx.coroutines.flow.Flow
 /** Read-only access to the `records` table. */
 class RecordsRepository(private val supabase: SupabaseClient) {
 
-    /** Newest watched first, loaded [PAGE_SIZE] at a time as the grid scrolls. */
+    /**
+     * Newest watched first (top lists: in list order), loaded [PAGE_SIZE] at a time
+     * as the grid scrolls.
+     */
     fun pagedRecords(filter: MediaFilter): Flow<PagingData<RecordSummary>> =
         pager { offset, limit -> page(filter, offset, limit) }
 
@@ -63,12 +66,20 @@ class RecordsRepository(private val supabase: SupabaseClient) {
                         }
                         MediaFilter.Anime, MediaFilter.AnimeTiers ->
                             filterNot("sort_order_anime", FilterOperator.IS, "null")
+                        MediaFilter.TopMovies, MediaFilter.TopSeries, MediaFilter.TopAnime ->
+                            filterNot(filter.topListColumn!!, FilterOperator.IS, "null")
                     }
                     if (!titleQuery.isNullOrBlank()) ilike("title", containsPattern(titleQuery))
                 }
-                // id as tie-breaker keeps page boundaries stable for equal timestamps
-                order("watchedat", Order.DESCENDING, nullsFirst = false)
-                order("id", Order.DESCENDING)
+                val topList = filter.topListColumn
+                if (topList != null) {
+                    order(topList, Order.ASCENDING)
+                    order("id", Order.ASCENDING)
+                } else {
+                    // id as tie-breaker keeps page boundaries stable for equal timestamps
+                    order("watchedat", Order.DESCENDING, nullsFirst = false)
+                    order("id", Order.DESCENDING)
+                }
                 range(offset.toLong(), (offset + limit - 1).toLong())
             }
             .decodeList<RecordSummaryDto>()
