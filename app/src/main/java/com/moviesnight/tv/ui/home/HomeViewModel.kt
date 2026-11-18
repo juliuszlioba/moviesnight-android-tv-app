@@ -39,8 +39,16 @@ class HomeViewModel(private val repository: RecordsRepository) : ViewModel() {
     val tierList: StateFlow<TierListState> = _tierList.asStateFlow()
     private var tierListRequested = false
 
+    /** The last view picked in each category, so returning to a category restores it. */
+    private val lastView = mutableMapOf<HomeCategory, MediaFilter>()
+
+    fun selectCategory(category: HomeCategory) {
+        select(lastView[category] ?: category.views.first())
+    }
+
     fun select(filter: MediaFilter) {
         _selected.value = filter
+        lastView[filter.category] = filter
         // Loaded the first time the tab is opened, then kept.
         if (filter == MediaFilter.AnimeTiers && !tierListRequested) loadTierList()
     }

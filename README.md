@@ -9,27 +9,29 @@ because it only reads what the database already exposes publicly through RLS.
 
 **What it does (v0.5.0)**
 
-- Home: logo on the left, tabs on the right (**All · Movies · Series · Anime · Top Movies · Top Series ·
-  Top Anime · Anime Tier List**), and a 6-column poster grid sorted by watched date, newest first.
-  Pages load as you scroll. Anime appear only under All and the anime tabs, not under Movies or Series.
-- Top Movies / Top Series / Top Anime: only records on that top list, in list order
+- Home: logo on the left, category tabs on the right (**All · Movies · Series · Anime**) and, below
+  them, the category's view tabs: **Recent · Top** for Movies and Series, **Recent · Top · Tiers** for
+  Anime (All has only Recent, so no second row). Each category remembers its last view. Recent is a
+  6-column poster grid sorted by watched date, newest first; pages load as you scroll. Anime appear
+  only under All and Anime, not under Movies or Series.
+- Top (Movies / Series / Anime): only records on that top list, in list order
   (`sort_order_movie` / `sort_order_series` / `sort_order_anime`, lowest first), as on the website's
   sorted pages.
-- Anime Tier List: every anime grouped by tier (S → F, then ungraded "?"), each tier in anime-list
+- Anime › Tiers: every anime grouped by tier (S → F, then ungraded "?"), each tier in anime-list
   order, as on the website's `/anime/tier`. Each tier's posters wrap to the right of a tile in the
   tier's colour showing the letter and count. The tile sticks to the top while you scroll through a
   long tier.
 - Each card shows the poster, the stars (rating 1–10 shown as 5 stars with halves) and the S–F tier
   sticker, if set. A yellow thumbs-up sticker below the tier sticker marks records in the movie or
-  series top list ("Highly recommended", as on the website; hidden in Top Movies and Top Series, where
+  series top list ("Highly recommended", as on the website; hidden in Movies › Top and Series › Top, where
   every record has it), and a small speech bubble after the stars marks records
   with a review. The focused card scales up and shows its title and year.
 - OK opens the detail screen: a large poster, title, year/type, stars, watched date, genres, the
   "Highly recommended to see!" line, the recommendation (yellow quote, as on the website) and the
   review. Up/Down scroll long reviews.
 - Search (magnifier left of the tabs) finds records by title as you type.
-- Back returns to the same poster in the grid. Back from inside the grid jumps to the top and the tabs;
-  Back on the tabs exits.
+- Back returns to the same poster in the grid. Back from inside the grid (or from the view tabs) jumps
+  to the top and the category tabs; Back on the category tabs exits.
 
 ---
 
@@ -153,7 +155,7 @@ The app only reads. Everything goes through `data/RecordsRepository.kt`.
 - **Table `records`**: `mediatype` is only ever `movie` or `series`.
 - **Anime has no media type.** Like the website, a record is anime when `sort_order_anime IS NOT NULL`.
   The Movies and Series tabs filter on `mediatype` **and** `sort_order_anime IS NULL`, so anime show up
-  only under All, Anime, Top Anime and Anime Tier List. An anime missing `sort_order_anime` still lands in
+  only under All and the Anime views (Recent, Top, Tiers). An anime missing `sort_order_anime` still lands in
   Movies/Series.
 - **Rating** is an integer 1–10 (0/null = unrated), shown as 5 stars with halves (9 → ★★★★½). The
   mapping is in `data/model/Rating.kt` and matches the website's `StarRating`.
@@ -174,7 +176,7 @@ The app only reads. Everything goes through `data/RecordsRepository.kt`.
 - **Sorting** is by `watchedat desc, id desc`. The `id` tiebreaker keeps page boundaries stable.
   Paging is offset-based, 42 rows per page (7 full grid rows).
 - **Top lists**: `sort_order_movie`, `sort_order_series` and `sort_order_anime` are a record's place in
-  that list, or null if it isn't on it. The Top tabs filter on `IS NOT NULL` and sort by the column
+  that list, or null if it isn't on it. The Top views filter on `IS NOT NULL` and sort by the column
   ascending (then `id`); the column is `MediaFilter.topListColumn`. A place in the movie or series
   list (not the anime one) is what makes a record "highly recommended".
 - **Columns** are listed in `data/remote/RecordDto.kt` (`SUMMARY_COLUMNS` for the grid,
@@ -191,13 +193,13 @@ app/src/main/java/com/moviesnight/tv/
 │  ├─ RecordsRepository.kt              Supabase queries + Pager
 │  ├─ RecordsPagingSource.kt            offset paging
 │  ├─ Supabase.kt                       anonymous client from BuildConfig
-│  ├─ model/                            MediaFilter (tabs), Rating, RecordSummary/RecordDetail,
+│  ├─ model/                            MediaFilter (grid queries), Rating, RecordSummary/RecordDetail,
 │  │                                    TierList (grouping by tier)
 │  └─ remote/                           DTOs + column lists, TMDB image URLs
 └─ ui/
    ├─ AppNavigation.kt                  Home → Detail(id)
    ├─ home/                             HomeScreen (header, tabs, grid, focus), HomeViewModel,
-   │                                    AnimeTierList (tier tab)
+   │                                    HomeCategory (category → views), AnimeTierList
    ├─ detail/                           DetailScreen (poster, info, scrolling), DetailViewModel
    ├─ components/                       PosterCard, StarRating, TierBadge, Quote, Logo,
    │                                    GridScroll (custom row scrolling), Focus helpers
@@ -210,9 +212,10 @@ app/src/main/java/com/moviesnight/tv/
   tab's scroll position (saveable `LazyGridState`s). It refocuses that poster when coming back from
   the detail screen. `requestFocusWhenReady()` retries for a few frames, because lazy items attach
   after the first layout.
-- **Tabs** switch on focus (TV convention). All eight only just fit the header (8dp tab padding, no
-  separators); a longer label or another tab will push the last one off screen. `focusRestorer` on the TabRow makes Up from the grid land
-  on the current tab, not the nearest one.
+- **Tabs** come in two rows, both switching on focus (TV convention): categories, then the
+  category's views (`HomeCategory`, each view one `MediaFilter`). The view row keeps its height even
+  when empty (All), so the grid doesn't jump while moving across categories. `focusRestorer` on each
+  TabRow makes Up/Down land on the current tab, not the nearest one.
 - **Grid scrolling is custom** (`ui/components/GridScroll.kt`). The built-in "bring focused item into
   view" animation jumps hard at the start and creeps at the end, and since Compose 1.8 its animation
   can't be customised. So it's disabled (`NoAutoScroll`), and each focus change calls

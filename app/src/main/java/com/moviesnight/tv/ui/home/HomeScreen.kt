@@ -2,7 +2,9 @@ package com.moviesnight.tv.ui.home
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +34,8 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -72,6 +76,7 @@ fun HomeScreen(
     val tierList by viewModel.tierList.collectAsStateWithLifecycle()
     HomeContent(
         selected = selected,
+        onSelectCategory = viewModel::selectCategory,
         onSelect = viewModel::select,
         records = viewModel.records::getValue,
         tierList = tierList,
@@ -85,6 +90,7 @@ fun HomeScreen(
 @Composable
 fun HomeContent(
     selected: MediaFilter,
+    onSelectCategory: (HomeCategory) -> Unit,
     onSelect: (MediaFilter) -> Unit,
     records: (MediaFilter) -> Flow<PagingData<RecordSummary>>,
     tierList: TierListState,
@@ -92,26 +98,29 @@ fun HomeContent(
     onOpenRecord: (Long) -> Unit,
     onOpenSearch: () -> Unit,
 ) {
+    val category = selected.category
     // Saveable, so scroll positions survive a trip to the detail screen and back.
     val gridStates = MediaFilter.entries.associateWith {
         rememberSaveable(it.name, saver = LazyGridState.Saver) { LazyGridState() }
     }
     val tierListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
-    val tabFocus = remember { MediaFilter.entries.associateWith { FocusRequester() } }
-    var headerFocused by remember { mutableStateOf(false) }
+    val categoryFocus = remember { HomeCategory.entries.associateWith { FocusRequester() } }
+    val viewFocus = remember { MediaFilter.entries.associateWith { FocusRequester() } }
+    var topRowFocused by remember { mutableStateOf(false) }
     // Last focused poster; focus returns to it when coming back from the detail screen.
     var focusedId by rememberSaveable { mutableStateOf<Long?>(null) }
     // True each time this screen (re)enters composition: at launch and on return from detail.
     var needsFocus by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
 
-    // Back from the grid: jump to the top and the tabs. Back in the header: leave the app.
-    BackHandler(enabled = !headerFocused) {
+    // Back from the grid or the view tabs: jump to the top and the category tabs.
+    // Back on the category tabs (or search): leave the app.
+    BackHandler(enabled = !topRowFocused) {
         scope.launch {
             if (selected == MediaFilter.AnimeTiers) tierListState.scrollToItem(0)
             else gridStates.getValue(selected).scrollToItem(0)
         }
-        runCatching { tabFocus.getValue(selected).requestFocus() }
+        runCatching { categoryFocus.getValue(category).requestFocus() }
     }
 
     Column(
@@ -127,27 +136,51 @@ fun HomeContent(
                 }
             },
     ) {
-        // Header: website logo on the left, search + tabs on the right.
-        Row(
+        // Header: website logo on the left, search + category tabs on the right,
+        // and the category's view tabs below them.
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 // Tabs carry TabPadding inside, so pull them out to line up with the grid edge.
-                .padding(start = EdgePadding, end = EdgePadding - TabPadding, top = 24.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(start = EdgePadding, end = EdgePadding - TabPadding, top = 24.dp, bottom = 4.dp),
+            horizontalAlignment = Alignment.End,
         ) {
-            Logo()
             Row(
-                modifier = Modifier.onFocusChanged { headerFocused = it.hasFocus },
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                SearchButton(onClick = onOpenSearch)
-                FilterTabs(
-                    selected = selected,
-                    onSelect = onSelect,
-                    focusRequesters = tabFocus,
-                )
+                Logo()
+                Row(
+                    modifier = Modifier.onFocusChanged { topRowFocused = it.hasFocus },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SearchButton(onClick = onOpenSearch)
+                    HeaderTabs(
+                        items = HomeCategory.entries,
+                        selected = category,
+                        onSelect = onSelectCategory,
+                        label = { it.label },
+                        focusRequesters = categoryFocus,
+                        textStyle = MaterialTheme.typography.titleMedium,
+                        verticalPadding = 8.dp,
+                    )
+                }
+            }
+            // Always the same height, so the grid doesn't jump while moving across categories.
+            Box(Modifier.height(ViewRowHeight), contentAlignment = Alignment.CenterEnd) {
+                if (category.views.size > 1) key(category) {
+                    HeaderTabs(
+                        items = category.views,
+                        selected = selected,
+                        onSelect = onSelect,
+                        label = { it.viewLabel },
+                        focusRequesters = viewFocus,
+                        textStyle = MaterialTheme.typography.titleSmall,
+                        verticalPadding = 4.dp,
+                    )
+                }
             }
         }
 
@@ -180,6 +213,7 @@ fun HomeContent(
 }
 
 private val TabPadding = 8.dp
+private val ViewRowHeight = 40.dp
 
 /** Magnifier left of the tabs; Left from the first tab reaches it. */
 @Composable
@@ -199,19 +233,24 @@ private fun SearchButton(onClick: () -> Unit) {
     }
 }
 
+/** A row of tabs that switch on focus: the categories, or the current category's views. */
 @Composable
-private fun FilterTabs(
-    selected: MediaFilter,
-    onSelect: (MediaFilter) -> Unit,
-    focusRequesters: Map<MediaFilter, FocusRequester>,
+private fun <T> HeaderTabs(
+    items: List<T>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    label: (T) -> String,
+    focusRequesters: Map<T, FocusRequester>,
+    textStyle: TextStyle,
+    verticalPadding: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val selectedIndex = selected.ordinal
+    val selectedIndex = items.indexOf(selected)
     TabRow(
         selectedTabIndex = selectedIndex,
-        // Coming up from the grid lands on the current tab instead of the nearest one.
+        // Coming in from above or below lands on the current tab instead of the nearest one.
         modifier = modifier.focusRestorer(focusRequesters.getValue(selected)),
-        // Tab padding alone spaces the labels, so all eight fit in the header.
+        // Tab padding alone spaces the labels.
         separator = { Spacer(Modifier.width(0.dp)) },
         indicator = { positions, rowFocused ->
             positions.getOrNull(selectedIndex)?.let {
@@ -224,11 +263,11 @@ private fun FilterTabs(
             }
         },
     ) {
-        MediaFilter.entries.forEach { filter ->
+        items.forEach { item ->
             Tab(
-                selected = filter == selected,
-                onFocus = { onSelect(filter) },
-                modifier = Modifier.focusRequester(focusRequesters.getValue(filter)),
+                selected = item == selected,
+                onFocus = { onSelect(item) },
+                modifier = Modifier.focusRequester(focusRequesters.getValue(item)),
                 colors = TabDefaults.underlinedIndicatorTabColors(
                     contentColor = TextSecondary,
                     selectedContentColor = TextPrimary,
@@ -237,16 +276,16 @@ private fun FilterTabs(
                 ),
             ) {
                 Text(
-                    filter.label,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = TabPadding, vertical = 8.dp),
+                    label(item),
+                    style = textStyle,
+                    modifier = Modifier.padding(horizontal = TabPadding, vertical = verticalPadding),
                 )
             }
         }
     }
 }
 
-/** Tabs switch in Interactive mode; the other grid tabs show a smaller sample list, the last tab the tier list. */
+/** Tabs switch in Interactive mode; the other grids show a smaller sample list, Anime › Tiers the tier list. */
 @TvScreenPreview
 @Composable
 private fun HomePreview() {
@@ -254,6 +293,7 @@ private fun HomePreview() {
     PreviewSurface {
         HomeContent(
             selected = selected,
+            onSelectCategory = { selected = it.views.first() },
             onSelect = { selected = it },
             records = { filter ->
                 if (filter == MediaFilter.All) SampleRecords.paged()
@@ -284,6 +324,7 @@ private fun HomeStatePreview(refresh: LoadState) {
     PreviewSurface {
         HomeContent(
             selected = MediaFilter.All,
+            onSelectCategory = {},
             onSelect = {},
             records = { SampleRecords.pagedState(refresh) },
             tierList = TierListState.Loading,
