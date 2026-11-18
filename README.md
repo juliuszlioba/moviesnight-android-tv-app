@@ -7,7 +7,7 @@ anime I've watched and how I rated them, read directly from the Supabase databas
 It's for personal use only. It's sideloaded with adb and will never go to a store. It needs no login,
 because it only reads what the database already exposes publicly through RLS.
 
-**What it does (v0.4.0)**
+**What it does (v0.5.0)**
 
 - Home: logo on the left, tabs on the right (**All · Movies · Series · Anime · Top Movies · Top Series ·
   Top Anime · Anime Tier List**), and a 6-column poster grid sorted by watched date, newest first.
