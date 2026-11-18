@@ -7,20 +7,25 @@ anime I've watched and how I rated them, read directly from the Supabase databas
 It's for personal use only. It's sideloaded with adb and will never go to a store. It needs no login,
 because it only reads what the database already exposes publicly through RLS.
 
-**What it does (v0.6.0)**
+![Home screen on first launch](docs/screenshot.jpg)
+
+**What it does (v1.0.0)**
 
 - Home: logo on the left, category tabs on the right (**All · Movies · Series · Anime**) and, below
   them, the category's view tabs: **Recent · Top** for Movies and Series, **Recent · Top · Tiers** for
   Anime (All has only Recent, so no second row). Each category remembers its last view. Recent is a
   6-column poster grid sorted by watched date, newest first; pages load as you scroll. Anime appear
   only under All and Anime, not under Movies or Series.
+- The header floats over the grid on a translucent black gradient, so posters slide faintly under it
+  as you scroll. The view tabs hide once you scroll past the first row and come back at the top or
+  when focus moves into the header. The background is pure black (`#000000`) for the OLED TV.
 - Top (Movies / Series / Anime): only records on that top list, in list order
   (`sort_order_movie` / `sort_order_series` / `sort_order_anime`, lowest first), as on the website's
   sorted pages.
 - Anime › Tiers: every anime grouped by tier (S → F, then ungraded "?"), each tier in anime-list
-  order, as on the website's `/anime/tier`. Each tier's posters wrap to the right of a tile in the
-  tier's colour showing the letter and count. The tile sticks to the top while you scroll through a
-  long tier.
+  order, as on the website's `/anime/tier`. Each tier's posters wrap to the right of a solid strip in
+  the tier's colour. Its tile shows the letter, "TIER", a thin rule and the count, and sticks just
+  below the header while you scroll through a long tier.
 - Each card shows the poster, the stars (rating 1–10 shown as 5 stars with halves) and the S–F tier
   sticker, if set. A yellow thumbs-up sticker below the tier sticker marks records in the movie or
   series top list ("Highly recommended", as on the website; hidden in Movies › Top and Series › Top, where
@@ -216,14 +221,21 @@ app/src/main/java/com/moviesnight/tv/
   category's views (`HomeCategory`, each view one `MediaFilter`). The view row keeps its height even
   when empty (All), so the grid doesn't jump while moving across categories. `focusRestorer` on each
   TabRow makes Up/Down land on the current tab, not the nearest one.
+- **The header is an overlay.** The grid and tier list fill the whole screen behind it and get
+  `topInset` as extra top content padding. The inset is the category row's measured height plus the
+  view row, even while the view row is hidden, so hiding it never shifts the grid. Because the
+  content's bounds now start at the top of the screen, geometric focus search can't cross the header
+  by itself: Down from the header's bottom row requests the content's `contentFocus` (then
+  `focusRestorer` picks the last poster), and Up out of the content goes to the current view tab, or
+  the category tab when there's no view row, instead of the nearest header item.
 - **Grid scrolling is custom** (`ui/components/GridScroll.kt`). The built-in "bring focused item into
   view" animation jumps hard at the start and creeps at the end, and since Compose 1.8 its animation
   can't be customised. So it's disabled (`NoAutoScroll`), and each focus change calls
   `scrollRowToPivot()`: one 300 ms ease-in-out glide that rests the focused row 140dp below the grid
   top. Don't remove one half without the other. The tier list is a `LazyColumn` of poster rows and
   uses the same approach (`scrollItemToPivot()`).
-- **Tier list labels** are an overlay beside the list, not list items. Their position and the colour
-  bands are computed from `LazyListState.layoutInfo` in the layout/draw phase, so scrolling doesn't
+- **Tier list labels** are an overlay beside the list, not list items. Their position and the solid
+  colour strips are computed from `LazyListState.layoutInfo` in the layout/draw phase, so scrolling doesn't
   recompose them.
 - **Focus zoom is draw-only.** `PosterCard` scales in `drawWithContent`, not `graphicsLayer`/Card's own
   scale. Scaling the layer changes the bounds that scrolling measures and made the page wobble
@@ -250,7 +262,7 @@ that Android vector drawables can't express, so it's rendered to PNGs with headl
 | File | Size | What |
 |---|---|---|
 | `res/drawable-nodpi/logo.png` | 256×256 | header logo |
-| `res/mipmap-xxxhdpi/ic_launcher_foreground.png` | 432×432, logo 300px centred | adaptive icon foreground (background = `#0E0E0E`) |
+| `res/mipmap-xxxhdpi/ic_launcher_foreground.png` | 432×432, logo 300px centred | adaptive icon foreground (background = `#000000`) |
 | `res/drawable-xhdpi/banner.png` | 640×360 | TV launcher banner: logo + "movies**Night**" in Geist |
 
 To regenerate: write a small HTML page with the `<img src="logo.svg">` (and for the banner, the Geist
